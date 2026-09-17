@@ -110,17 +110,17 @@ function Collapsible({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-t border-[#F1E2DA]">
+    <div className="border-t border-[#F1E2DA] pt-4">
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={open}
         data-testid={`${testId}-toggle`}
-        className="flex w-full items-center justify-between gap-3 px-6 py-4 text-left text-[11px] tracking-[0.18em] text-[#6B4F45] uppercase transition-colors duration-300 hover:text-[#C08272]"
+        className="gloss-hover mx-6 mb-4 inline-flex items-center gap-2 rounded-full bg-[#8B9A85] px-5 py-3 text-left text-[11px] font-medium tracking-[0.12em] text-white uppercase shadow-[0_10px_20px_-14px_rgba(71,91,68,0.8)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#7E8C78] focus-visible:ring-2 focus-visible:ring-[#C79A7B] focus-visible:ring-offset-2"
       >
         {open ? openLabel : label}
         <ChevronDown
-          className={`size-4 text-[#C08272] transition-transform duration-500 ${
+          className={`size-4 text-white/90 transition-transform duration-500 ${
             open ? "rotate-180" : ""
           }`}
           aria-hidden
