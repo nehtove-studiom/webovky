@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import LogoBadge from "@/components/LogoBadge";
 
 const ANCHORS = [
@@ -78,6 +79,7 @@ export default function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-3">
+          <LanguageSwitcher />
           <Link
             to="/admin"
             data-testid="nav-admin-portal-button"

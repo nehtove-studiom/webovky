@@ -390,3 +390,12 @@
     transition-duration: 0.01ms !important;
   }
 }
+/* Google Website Translator se ovládá naším vlastním přepínačem v hlavičce. */
+.goog-te-banner-frame.skiptranslate,
+.goog-te-balloon-frame {
+  display: none !important;
+}
+
+body {
+  top: 0 !important;
+}
