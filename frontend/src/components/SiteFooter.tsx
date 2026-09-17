@@ -80,6 +80,12 @@ export default function SiteFooter() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-5 py-6 text-[11px] text-[#A98F84] sm:flex-row sm:px-8">
           <p>© {new Date().getFullYear()} Studio M · Martina Holánková, IČO 63854023</p>
           <p>Objednávkový systém s AI asistencí</p>
+          <Link to="/obchodni-podminky" className="transition-colors duration-300 hover:text-[#C08272]">
+            Obchodní podmínky
+          </Link>
+          <Link to="/kontakt" className="transition-colors duration-300 hover:text-[#C08272]">
+            Kontakt
+          </Link>
           <Link
             to="/admin"
             className="transition-colors duration-300 hover:text-[#C08272]"
