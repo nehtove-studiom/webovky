@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { CalendarClock, ChevronDown, Clock, MapPin, Navigation } from "lucide-react";
 import { GoldDust, GoldRule } from "@/components/GoldOrnament";
 import { apiGet } from "@/lib/api";
-import type { CurrentLocation, Location, Service } from "@/types";
+import type { CurrentLocation, Location } from "@/types";
 import { formatCzechDate } from "@/types";
 
 function mapsEmbed(query: string): string {
@@ -17,6 +17,41 @@ function mapsEmbed(query: string): string {
 function mapsLink(query: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
+
+// Provozovny a ceníky jsou záměrně přímo na stránce: návštěvnice je tak vidí
+// i v případě, že rezervační server zrovna není dostupný.
+const STUDIO_LOCATIONS: Location[] = [
+  {
+    id: "krasna-lipa",
+    name: "Krásná Lípa",
+    address: "Varnsdorfská 89/52",
+    city: "Krásná Lípa",
+    maps_query: "Varnsdorfská 89/52, Krásná Lípa",
+  },
+  {
+    id: "neratovice",
+    name: "Neratovice",
+    address: "Dr. E. Beneše 1184",
+    city: "Neratovice",
+    maps_query: "Dr. E. Beneše 1184, Neratovice",
+  },
+];
+
+const PRICE_LISTS: Record<string, Array<{ name: string; duration: number; price: string }>> = {
+  "krasna-lipa": [
+    { name: "Nová modeláž", duration: 120, price: "650 Kč" },
+    { name: "Doplnění", duration: 120, price: "530 Kč" },
+    { name: "Gel lak", duration: 60, price: "580 Kč" },
+    { name: "Manikúra", duration: 60, price: "400 Kč" },
+    { name: "Pedikúra", duration: 60, price: "380 Kč" },
+  ],
+  neratovice: [
+    { name: "Nová modeláž", duration: 120, price: "900 Kč" },
+    { name: "Doplnění", duration: 120, price: "780 Kč" },
+    { name: "Gel lak", duration: 60, price: "580 Kč" },
+    { name: "Manikúra", duration: 60, price: "400 Kč" },
+  ],
+};
 
 /** Úzký banner „tento týden pracujeme v…“ — vhodný hned pod hero. */
 export function CurrentWeekBanner() {
@@ -104,42 +139,20 @@ function Collapsible({
   );
 }
 
-/** Ceník jedné provozovny — načítá se až po rozkliknutí. */
+/** Ceník jedné provozovny — otevírá se přímo nad její mapou. */
 function LocationPricelist({ locationId }: { locationId: string }) {
-  const servicesQuery = useQuery({
-    queryKey: ["services", locationId],
-    queryFn: () => apiGet<Service[]>(`/services?location=${locationId}`),
-  });
-  const services = servicesQuery.data ?? [];
-
-  if (servicesQuery.isPending) {
-    return (
-      <p className="px-6 pb-6 text-sm text-[#8A7972]" data-testid={`pricelist-loading-${locationId}`}>
-        Načítáme ceník…
-      </p>
-    );
-  }
-
-  if (servicesQuery.isError) {
-    return (
-      <p className="px-6 pb-6 text-sm text-[#A4463C]" data-testid={`pricelist-error-${locationId}`}>
-        Ceník se nepodařilo načíst, zkuste to prosím za chvíli.
-      </p>
-    );
-  }
-
   return (
     <ul className="px-6 pb-6" data-testid={`pricelist-${locationId}`}>
-      {services.map((service) => (
+      {PRICE_LISTS[locationId].map((service) => (
         <li
-          key={service.id}
-          data-testid={`pricelist-${locationId}-${service.id}`}
+          key={service.name}
+          data-testid={`pricelist-${locationId}-${service.name}`}
           className="flex items-baseline gap-3 border-b border-dashed border-[#EFDCD4] py-3 last:border-b-0"
         >
           <span className="font-heading text-[1.05rem] text-[#5E4238]">{service.name}</span>
           <span className="flex items-center gap-1 text-[10px] tracking-[0.12em] text-[#A98F84] uppercase">
             <Clock className="size-3" aria-hidden />
-            {service.duration_min} min
+            {service.duration} min
           </span>
           <span className="mx-2 h-px flex-1 bg-[#EFDCD4]" aria-hidden />
           <span className="gold-text font-heading text-[1.15rem] whitespace-nowrap">
@@ -154,22 +167,15 @@ function LocationPricelist({ locationId }: { locationId: string }) {
 /** Sekce se dvěma samostatnými bannery provozoven. */
 export default function LocationsSection() {
   const [openPrice, setOpenPrice] = useState<string | null>(null);
-  const [openMap, setOpenMap] = useState<string | null>(null);
-
-  const locationsQuery = useQuery({
-    queryKey: ["locations"],
-    queryFn: () => apiGet<Location[]>("/locations"),
-  });
   const currentQuery = useQuery({
     queryKey: ["current-location"],
     queryFn: () => apiGet<CurrentLocation>("/locations/current"),
   });
-  const locations = locationsQuery.data ?? [];
   const currentId = currentQuery.data?.location?.id ?? null;
 
   return (
-    <div className="space-y-6" data-testid="locations-grid">
-      {locations.map((loc) => {
+    <div className="grid gap-6 lg:grid-cols-2" data-testid="locations-grid">
+      {STUDIO_LOCATIONS.map((loc) => {
         const active = loc.id === currentId;
         return (
           <article
@@ -218,38 +224,28 @@ export default function LocationsSection() {
               {openPrice === loc.id && <LocationPricelist locationId={loc.id} />}
             </Collapsible>
 
-            {/* mapa na rozkliknutí */}
-            <Collapsible
-              label="Zobrazit mapu a navigaci"
-              openLabel="Skrýt mapu"
-              open={openMap === loc.id}
-              onToggle={() => setOpenMap(openMap === loc.id ? null : loc.id)}
-              testId={`location-map-${loc.id}`}
-            >
-              <div className="px-6 pb-6">
-                <div className="aspect-[16/9] w-full overflow-hidden rounded-[18px] border border-[#EFDCD4]">
-                  {openMap === loc.id && (
-                    <iframe
-                      src={mapsEmbed(loc.maps_query)}
-                      title={`Mapa — ${loc.name}`}
-                      loading="lazy"
-                      className="size-full"
-                      data-testid={`location-map-frame-${loc.id}`}
-                    />
-                  )}
-                </div>
-                <a
-                  href={mapsLink(loc.maps_query)}
-                  target="_blank"
-                  rel="noreferrer"
-                  data-testid={`location-directions-${loc.id}`}
-                  className="mt-4 inline-flex items-center gap-2 text-[11px] tracking-[0.16em] text-[#C08272] uppercase transition-colors duration-300 hover:text-[#8B9A85]"
-                >
-                  <Navigation className="size-3.5" aria-hidden />
-                  Navigovat
-                </a>
+            {/* mapa je vždy viditelná přímo pod ceníkem */}
+            <div className="px-6 pb-6 pt-2">
+              <div className="aspect-[4/3] w-full overflow-hidden rounded-[18px] border border-[#EFDCD4]">
+                <iframe
+                  src={mapsEmbed(loc.maps_query)}
+                  title={`Mapa — ${loc.name}`}
+                  loading="lazy"
+                  className="size-full"
+                  data-testid={`location-map-frame-${loc.id}`}
+                />
               </div>
-            </Collapsible>
+              <a
+                href={mapsLink(loc.maps_query)}
+                target="_blank"
+                rel="noreferrer"
+                data-testid={`location-directions-${loc.id}`}
+                className="mt-4 inline-flex items-center gap-2 text-[11px] tracking-[0.16em] text-[#C08272] uppercase transition-colors duration-300 hover:text-[#8B9A85]"
+              >
+                <Navigation className="size-3.5" aria-hidden />
+                Navigovat
+              </a>
+            </div>
           </article>
         );
       })}

@@ -17,8 +17,8 @@ SERVICES: list[Service] = [
     Service(
         id="manikura",
         name="Manikúra",
-        prices={"krasna-lipa": "380 Kč", "neratovice": "380 Kč"},
-        price="380 Kč",
+        prices={"krasna-lipa": "400 Kč", "neratovice": "400 Kč"},
+        price="400 Kč",
         duration_min=60,
         tag="Základní péče",
         description="Kompletní ošetření nehtové kůžičky, zapilování do tvaru, vyživující lázeň a závěrečný regenerační olejíček.",
@@ -26,8 +26,8 @@ SERVICES: list[Service] = [
     Service(
         id="gel-lak",
         name="Gel lak",
-        prices={"krasna-lipa": "480 Kč", "neratovice": "580 Kč"},
-        price="480 Kč",
+        prices={"krasna-lipa": "580 Kč", "neratovice": "580 Kč"},
+        price="580 Kč",
         duration_min=60,
         tag="Nejpopulárnější",
         description="Profesionální aplikace vysoce odolného šetrného gel laku s výdrží 3–4 týdny a zrcadlovým leskem.",
@@ -53,7 +53,7 @@ SERVICES: list[Service] = [
     Service(
         id="pedikura",
         name="Základní pedikúra",
-        prices={"krasna-lipa": "380 Kč", "neratovice": "380 Kč"},
+        prices={"krasna-lipa": "380 Kč"},
         price="380 Kč",
         duration_min=60,
         tag="Relaxace",
@@ -79,4 +79,9 @@ def service_for_location(service: Service, location_id: str | None) -> Service:
 async def list_services(location: str | None = None) -> list[Service]:
     if location and location not in LOCATIONS_BY_ID:
         raise HTTPException(status_code=400, detail="Neznámá provozovna.")
-    return [service_for_location(s, location or DEFAULT_LOCATION) for s in SERVICES]
+    selected_location = location or DEFAULT_LOCATION
+    return [
+        service_for_location(service, selected_location)
+        for service in SERVICES
+        if selected_location in service.prices
+    ]
