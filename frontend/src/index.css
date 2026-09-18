@@ -408,6 +408,8 @@ body {
 .nail-hand-float-reverse { animation: nail-hand-float 5.3s ease-in-out infinite reverse; }
 
 /* Fotorealistický návrhář: skutečné ruce jsou podkladem, barvy se nanášejí přímo na jednotlivé nehty. */
+.nail-phaser { aspect-ratio:3 / 2; background:#f5ddd8; }
+.nail-phaser canvas { display:block; width:100% !important; height:100% !important; touch-action:manipulation; }
 .photo-nail { position:absolute; z-index:2; width:5%; height:9%; min-width:20px; min-height:36px; cursor:pointer; border:0; border-radius:50% 50% 43% 43%; background:transparent; }
 .photo-nail:hover { background:rgba(255,255,255,.12); }
 .photo-nail.is-selected { outline:2px solid rgba(255,255,255,.98); outline-offset:2px; box-shadow:0 0 0 3px rgba(91,61,52,.7),0 2px 8px rgba(60,32,25,.35); }
