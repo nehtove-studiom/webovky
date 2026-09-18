@@ -408,7 +408,7 @@ body {
 .nail-hand-float-reverse { animation: nail-hand-float 5.3s ease-in-out infinite reverse; }
 
 /* Fotorealistický návrhář: skutečné ruce jsou podkladem, barvy se nanášejí přímo na jednotlivé nehty. */
-.photo-nail { position:absolute; z-index:2; width:5.4%; height:10.2%; min-width:24px; min-height:45px; cursor:pointer; border:1px solid rgba(255,255,255,.75); border-radius:50% 50% 43% 43%; background:linear-gradient(118deg,rgba(255,255,255,.58) 4%,transparent 27%,rgba(255,255,255,.1) 49%,transparent 69%),var(--nail-color); box-shadow:inset 1px 1px 2px rgba(255,255,255,.6),0 2px 4px rgba(60,32,25,.15); transition:filter .18s ease, box-shadow .18s ease; }
+.photo-nail { position:absolute; z-index:2; width:4.25%; height:8%; min-width:16px; min-height:31px; cursor:pointer; border:1px solid rgba(255,255,255,.75); border-radius:50% 50% 43% 43%; background:linear-gradient(118deg,rgba(255,255,255,.58) 4%,transparent 27%,rgba(255,255,255,.1) 49%,transparent 69%),var(--nail-color); box-shadow:inset 1px 1px 2px rgba(255,255,255,.6),0 2px 4px rgba(60,32,25,.15); transition:filter .18s ease, box-shadow .18s ease; }
 .photo-nail:hover { filter:brightness(1.06) saturate(1.08); }
 .photo-nail.is-selected { outline:2px solid rgba(255,255,255,.98); outline-offset:3px; box-shadow:0 0 0 6px rgba(111,76,65,.54), inset 1px 1px 2px rgba(255,255,255,.8),0 4px 8px rgba(60,32,25,.28); }
 .photo-nail.is-square { border-radius:10px 10px 13px 13px; }
