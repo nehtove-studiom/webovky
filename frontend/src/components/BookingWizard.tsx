@@ -17,6 +17,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import NailDesignStudio from "@/components/NailDesignStudio";
 
 const STEP_NAMES = ["Služba", "Termín", "Kontakt", "Návrh"];
 const PROCESSING = ["prompt", "image", "calendar"];
@@ -399,6 +400,7 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
                   className="mt-3 bg-white"
                   data-testid="booking-ai-design-description-input"
                 />
+                <NailDesignStudio onDescriptionChange={(value) => setDesignText(value)} />
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {[
                     ["Tvar", designShape, setDesignShape, ["mandlový", "oválný", "square", "stiletto"]],
