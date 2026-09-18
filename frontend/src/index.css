@@ -407,29 +407,17 @@ body {
 .nail-hand-float { animation: nail-hand-float 4.6s ease-in-out infinite; }
 .nail-hand-float-reverse { animation: nail-hand-float 5.3s ease-in-out infinite reverse; }
 
-/* Studio M Nail Design Bar — original CSS illustration, intentionally asset-free. */
-@keyframes nail-game-left-float { 0%,100% { transform: rotate(-14deg) translateY(0); } 50% { transform: rotate(-11deg) translateY(-7px); } }
-@keyframes nail-game-right-float { 0%,100% { transform: rotate(14deg) translateY(-3px); } 50% { transform: rotate(11deg) translateY(4px); } }
-.nail-game-hand { position:absolute; bottom:8px; width:48%; height:270px; transform-origin:50% 100%; }
-.nail-game-left { left:1%; animation:nail-game-left-float 5.2s ease-in-out infinite; }
-.nail-game-right { right:1%; animation:nail-game-right-float 5.8s ease-in-out infinite; }
-.nail-game-palm { position:absolute; bottom:0; left:20%; width:62%; height:172px; border:1px solid rgba(114,70,57,.18); border-radius:52% 48% 38% 42% / 44% 44% 57% 57%; background:linear-gradient(115deg,#b97862,#f3c7b3 47%,#c78370); box-shadow:0 16px 22px rgba(93,55,45,.2), inset 10px 7px 20px rgba(255,255,255,.22); }
-.nail-game-right .nail-game-palm { background:linear-gradient(65deg,#b97862,#f3c7b3 47%,#c78370); }
-.nail-game-nail { position:absolute; z-index:2; width:38px; height:71px; border:2px solid rgba(255,255,255,.82); border-radius:50% 50% 40% 40%; box-shadow:0 7px 12px rgba(75,42,34,.28), inset 2px 2px 3px rgba(255,255,255,.42); transition:transform .25s ease, filter .25s ease, box-shadow .25s ease; cursor:pointer; color:#fff7ef; font-size:14px; text-shadow:0 1px 2px rgba(58,36,29,.4); }
-.nail-game-nail:hover { filter:brightness(1.06); transform:scale(1.08)!important; }
-.nail-game-nail.is-selected { outline:3px solid rgba(255,255,255,.85); outline-offset:3px; box-shadow:0 0 0 7px rgba(190,117,101,.45),0 8px 14px rgba(75,42,34,.32); }
-.nail-game-nail.is-square { border-radius:9px 9px 13px 13px; }
-.nail-game-nail.is-stiletto { height:84px; clip-path:polygon(50% 0, 100% 100%, 0 100%); border-radius:0; }
-.nail-game-nail.is-coffin { height:78px; clip-path:polygon(20% 0,80% 0,100% 100%,0 100%); border-radius:9px; }
-.nail-game-nail-left-0 { left:5%; top:124px; transform:rotate(-48deg); }
-.nail-game-nail-left-1 { left:22%; top:62px; transform:rotate(-25deg); }
-.nail-game-nail-left-2 { left:40%; top:36px; transform:rotate(-10deg); height:82px; }
-.nail-game-nail-left-3 { left:58%; top:48px; transform:rotate(2deg); height:77px; }
-.nail-game-nail-left-4 { left:76%; top:88px; transform:rotate(18deg); height:60px; }
-.nail-game-nail-right-0 { right:5%; top:124px; transform:rotate(48deg); }
-.nail-game-nail-right-1 { right:22%; top:62px; transform:rotate(25deg); }
-.nail-game-nail-right-2 { right:40%; top:36px; transform:rotate(10deg); height:82px; }
-.nail-game-nail-right-3 { right:58%; top:48px; transform:rotate(-2deg); height:77px; }
-.nail-game-nail-right-4 { right:76%; top:88px; transform:rotate(-18deg); height:60px; }
-@media (max-width: 430px) { .nail-game-hand { transform:scale(.83); width:58%; } .nail-game-left { left:-8%; } .nail-game-right { right:-8%; } }
-@media (prefers-reduced-motion: reduce) { .nail-game-left,.nail-game-right { animation:none; } }
+/* Fotorealistický návrhář: skutečné ruce jsou podkladem, barvy se nanášejí přímo na jednotlivé nehty. */
+.photo-nail { position:absolute; z-index:2; width:5.4%; height:10.2%; min-width:24px; min-height:45px; cursor:pointer; border:1px solid rgba(255,255,255,.75); border-radius:50% 50% 43% 43%; background:linear-gradient(118deg,rgba(255,255,255,.58) 4%,transparent 27%,rgba(255,255,255,.1) 49%,transparent 69%),var(--nail-color); box-shadow:inset 1px 1px 2px rgba(255,255,255,.6),0 2px 4px rgba(60,32,25,.15); transition:filter .18s ease, box-shadow .18s ease; }
+.photo-nail:hover { filter:brightness(1.06) saturate(1.08); }
+.photo-nail.is-selected { outline:2px solid rgba(255,255,255,.98); outline-offset:3px; box-shadow:0 0 0 6px rgba(111,76,65,.54), inset 1px 1px 2px rgba(255,255,255,.8),0 4px 8px rgba(60,32,25,.28); }
+.photo-nail.is-square { border-radius:10px 10px 13px 13px; }
+.photo-nail.is-stiletto { clip-path:polygon(50% 0,100% 100%,0 100%); border-radius:0; }
+.photo-nail.is-coffin { clip-path:polygon(17% 0,83% 0,100% 100%,0 100%); border-radius:10px; }
+.photo-nail.is-matte { background:var(--nail-color); box-shadow:inset 0 0 5px rgba(44,28,23,.18),0 2px 4px rgba(60,32,25,.15); }
+.photo-nail.is-glazed { background:linear-gradient(115deg,#fff9f1 3%,rgba(255,255,255,.1) 35%,rgba(255,230,229,.78) 63%,#fffaf2),var(--nail-color); }
+.photo-nail.is-ombre { background:linear-gradient(180deg,rgba(255,252,248,.96),var(--nail-color) 72%); }
+.photo-nail.is-chrome { background:linear-gradient(120deg,#f5eef0 0%,var(--nail-color) 30%,#ffffff 47%,var(--nail-color) 64%,#dfd7d5 100%); }
+.photo-nail.is-glitter { background:radial-gradient(circle at 18% 16%,#fff 0 2%,transparent 3%),radial-gradient(circle at 62% 44%,rgba(255,255,255,.9) 0 2%,transparent 3%),radial-gradient(circle at 35% 76%,rgba(255,255,255,.7) 0 2%,transparent 3%),var(--nail-color); }
+.photo-nail-shine { position:absolute; inset:9% 20% 23% 22%; border-radius:50%; background:linear-gradient(100deg,rgba(255,255,255,.74),rgba(255,255,255,0)); opacity:.68; pointer-events:none; }
+.photo-nail-decoration { position:absolute; inset:0; display:grid; place-items:center; color:#fff8eb; font-size:clamp(11px,1.55vw,18px); font-weight:700; text-shadow:0 1px 3px rgba(48,29,24,.65); pointer-events:none; }
