@@ -399,3 +399,10 @@
 body {
   top: 0 !important;
 }
+@keyframes nail-hand-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -7px; }
+}
+
+.nail-hand-float { animation: nail-hand-float 4.6s ease-in-out infinite; }
+.nail-hand-float-reverse { animation: nail-hand-float 5.3s ease-in-out infinite reverse; }

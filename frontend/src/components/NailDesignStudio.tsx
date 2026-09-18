@@ -46,8 +46,8 @@ export default function NailDesignStudio({ onDescriptionChange }: Props) {
           <p className="relative text-center text-[10px] tracking-[.18em] text-[#896E62] uppercase">Vyberte jeden z nehtů</p>
           <div className="relative mx-auto mt-4 h-[270px] max-w-[410px]" aria-label="Interaktivní vizualizace ruky">
             {/* Dvě stylizované, dospělé ruce s jemným stínováním; neobsahuje cizí herní assety. */}
-            <div className="absolute bottom-0 left-[7%] h-[206px] w-[170px] rotate-[-13deg] rounded-[70%_35%_42%_35%] border border-[#b58675]/20 bg-[linear-gradient(110deg,#c78d78,#f5cbb8_50%,#b97665)] shadow-[18px_18px_25px_rgba(83,53,44,.18)]" />
-            <div className="absolute bottom-0 right-[7%] h-[206px] w-[170px] rotate-[13deg] rounded-[35%_70%_35%_42%] border border-[#b58675]/20 bg-[linear-gradient(70deg,#b97665,#f5cbb8_50%,#c78d78)] shadow-[-18px_18px_25px_rgba(83,53,44,.18)]" />
+            <div className="nail-hand-float absolute bottom-0 left-[7%] h-[206px] w-[170px] rotate-[-13deg] rounded-[70%_35%_42%_35%] border border-[#b58675]/20 bg-[linear-gradient(110deg,#c78d78,#f5cbb8_50%,#b97665)] shadow-[18px_18px_25px_rgba(83,53,44,.18)]" />
+            <div className="nail-hand-float-reverse absolute bottom-0 right-[7%] h-[206px] w-[170px] rotate-[13deg] rounded-[35%_70%_35%_42%] border border-[#b58675]/20 bg-[linear-gradient(70deg,#b97665,#f5cbb8_50%,#c78d78)] shadow-[-18px_18px_25px_rgba(83,53,44,.18)]" />
             {[0,1,2,3,4].map((index) => {
               const x = 40 + index * 16.1;
               const nailHeight = [58, 72, 78, 73, 55][index];
