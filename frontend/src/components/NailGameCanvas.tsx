@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { useEffect, useRef } from "react";
 
-type GameState = { selected: number; nails: string[]; shape: string; length: string; finish: string; decoration: string; hand: "left" | "right" };
+type GameState = { selected: number; nails: string[]; shape: string; length: string; finish: string; decoration: string; hand: "left" | "right"; score: number; paintedCount: number };
 type Props = GameState & { onSelect: (index: number) => void };
 
 const FINGERS = [
@@ -19,6 +19,11 @@ class ManicureScene extends Phaser.Scene {
   constructor() { super("studio-m-manicure"); }
   setManicure(state: GameState, choose: (index: number) => void) { this.manicure = state; this.choose = choose; if (this.rendered) this.paint(); }
   create() { this.rendered = true; if (this.manicure) this.paint(); }
+  preload() {
+    // CC0 user-interface sounds by EZduzziteh / OpenGameArt.
+    this.load.audio("nail-tap", "/game-sfx/nail-tap.mp3");
+    this.load.audio("nail-win", "/game-sfx/nail-win.mp3");
+  }
 
   private paint() {
     this.children.removeAll(true);
@@ -31,12 +36,15 @@ class ManicureScene extends Phaser.Scene {
     bg.lineStyle(1, 0xd9ae9e, .34).strokeRoundedRect(18, 18, 484, 614, 30);
     [[56, 82], [466, 103], [458, 547], [72, 555]].forEach(([x, y]) => this.sparkle(x, y, 0xc49683, .45));
 
+    this.add.text(44, 44, `SKÓRE ${state.score.toString().padStart(4, "0")}`, { fontFamily: "DM Sans, Arial", fontStyle: "bold", fontSize: "13px", color: "#755147", letterSpacing: 1.2 });
+    this.add.text(476, 44, `${state.paintedCount}/5`, { fontFamily: "DM Sans, Arial", fontStyle: "bold", fontSize: "13px", color: "#758b70" }).setOrigin(1, 0);
     const hand = this.add.container(0, 0);
     if (state.hand === "right") { hand.setScale(-1, 1); hand.x = 520; }
     this.drawPalm(hand);
     const ordered = state.hand === "left" ? [4, 3, 2, 1, 0] : [5, 6, 7, 8, 9];
     FINGERS.forEach((finger, slot) => this.drawFinger(hand, finger, ordered[slot], state));
     this.add.text(260, 600, "KLEPNĚTE NA NEHET A VYTVOŘTE VLASTNÍ DESIGN", { fontFamily: "DM Sans, Arial", fontSize: "11px", color: "#7c5b50", letterSpacing: 1.2 }).setOrigin(.5).setAlpha(.86);
+    if (state.paintedCount >= 5) this.celebrate();
   }
 
   private drawPalm(parent: Phaser.GameObjects.Container) {
@@ -75,7 +83,7 @@ class ManicureScene extends Phaser.Scene {
     nail.add(plate);
     this.drawDecoration(nail, state.decoration, height);
     const hit = this.add.zone(0, 0, width + 26, height + 28).setInteractive({ useHandCursor: true });
-    hit.on("pointerdown", () => { this.choose(index); this.tweens.add({ targets: nail, scale: { from: 1, to: 1.16 }, yoyo: true, duration: 130 }); });
+    hit.on("pointerdown", () => { this.choose(index); this.sound.play("nail-tap", { volume: .22, rate: 1.22 }); this.tweens.add({ targets: nail, scale: { from: 1, to: 1.16 }, yoyo: true, duration: 130 }); });
     nail.add(hit);
   }
 
@@ -93,6 +101,14 @@ class ManicureScene extends Phaser.Scene {
     nail.add(this.add.text(0, height * .08, icons[decoration] ?? "✦", { fontFamily: "Georgia, serif", fontSize: decoration === "Zlatá linka" ? "25px" : "18px", color: decoration === "Zlatá linka" ? "#f5d694" : "#fff8ef", stroke: "#78493e", strokeThickness: 1 }).setOrigin(.5));
   }
   private sparkle(x: number, y: number, color: number, alpha: number) { const g = this.add.graphics(); g.fillStyle(color, alpha).fillTriangle(x, y - 8, x + 2, y - 2, x + 8, y).fillTriangle(x, y + 8, x - 2, y + 2, x - 8, y); }
+  private celebrate() {
+    this.sound.play("nail-win", { volume: .28, rate: 1.04 });
+    const panel = this.add.container(260, 325);
+    const bg = this.add.graphics(); bg.fillStyle(0xfffbf7, .93).fillRoundedRect(-145, -62, 290, 124, 24).lineStyle(2, 0xa4b29d, .75).strokeRoundedRect(-145, -62, 290, 124, 24);
+    panel.add([bg, this.add.text(0, -22, "LEVEL SPLNĚN", { fontFamily: "Playfair Display, Georgia", fontSize: "24px", color: "#596b54" }).setOrigin(.5), this.add.text(0, 18, "Váš design získal 500 bodů ✦", { fontFamily: "DM Sans, Arial", fontSize: "13px", color: "#77594e" }).setOrigin(.5)]);
+    panel.setAlpha(0).setScale(.82); this.tweens.add({ targets: panel, alpha: 1, scale: 1, duration: 380, ease: "Back.Out" });
+    [[150, 155], [380, 140], [126, 465], [404, 470]].forEach(([x, y], index) => { const star = this.add.text(x, y, "✦", { fontSize: "25px", color: "#d39d77" }).setOrigin(.5); this.tweens.add({ targets: star, y: y - 24, alpha: 0, angle: index % 2 ? 25 : -25, duration: 900, delay: index * 80, repeat: -1, repeatDelay: 800 }); });
+  }
 }
 
 export default function NailGameCanvas(props: Props) {
