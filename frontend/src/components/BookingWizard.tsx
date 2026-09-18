@@ -32,6 +32,7 @@ function czechError(error: unknown, fallback: string): string {
 export default function BookingWizard({ autoServiceId }: { autoServiceId: string | null }) {
   const [step, setStep] = useState(1);
   const [serviceId, setServiceId] = useState<string | null>(null);
+  const [locationId, setLocationId] = useState<string | null>(null);
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [time, setTime] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -40,6 +41,11 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [designSent, setDesignSent] = useState(false);
   const [designText, setDesignText] = useState("");
+  const [designShape, setDesignShape] = useState("mandlový");
+  const [designLength, setDesignLength] = useState("střední");
+  const [designFinish, setDesignFinish] = useState("lesklý");
+  const [designColor, setDesignColor] = useState("pudrově růžová");
+  const [designDecoration, setDesignDecoration] = useState("bez zdobení");
 
   // Výběr služby z ceníku přeskočí rovnou na krok s termínem.
   useEffect(() => {
@@ -77,6 +83,7 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
     mutationFn: () =>
       apiPost<Booking>("/bookings", {
         service_id: serviceId,
+        location_id: locationId,
         date: dateStr,
         time,
         name,
@@ -93,11 +100,11 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
   });
 
   const submitDesign = useMutation({
-    mutationFn: () =>
-      apiPost<Booking>(`/bookings/${bookingId}/design`, { design_description: designText }),
+    mutationFn: (description: string) =>
+      apiPost<Booking>(`/bookings/${bookingId}/design`, { design_description: description }),
     onSuccess: () => {
       setDesignSent(true);
-      toast.success("AI agenti se ujali vašeho návrhu!");
+      toast.success("Asistentka a nail artista se ujali vašeho návrhu!");
     },
     onError: (error) =>
       toast.error(czechError(error, "Návrh se nepodařilo odeslat. Zkuste to prosím znovu.")),
@@ -118,6 +125,7 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
   const reset = () => {
     setStep(1);
     setServiceId(null);
+    setLocationId(null);
     setDate(undefined);
     setTime(null);
     setName("");
@@ -130,6 +138,7 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
 
   const contactValid = name.trim().length >= 2 && phone.trim().length >= 6 && !!serviceId && !!time && !!dateStr;
   const showPipeline = !!booking && (designSent || booking.pipeline_status !== "none");
+  const makeDesignDescription = () => `${designShape} tvar, ${designLength} délka, ${designColor}, ${designFinish} finiš, ${designDecoration}. ${designText.trim()}`.trim();
 
   return (
     <div
@@ -188,16 +197,14 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
                       <Badge variant="secondary">{s.tag}</Badge>
                     </div>
                     <p className="mt-1 text-xs text-[#8A7972]">{s.description}</p>
-                    <p className="mt-2 font-heading text-lg text-[#C08272]">
-                      {s.price}
-                      <span className="ml-2 text-xs text-[#8A7972]">· {s.duration_min} min</span>
-                    </p>
+                    <p className="mt-2 text-xs text-[#8A7972]">Délka služby: {s.duration_min} min</p>
                   </button>
                 );
               })}
             </div>
+            {serviceId && <div className="mt-5"><p className="text-[10px] tracking-[.18em] text-[#A98F84] uppercase">Vyberte provozovnu</p><div className="mt-2 flex flex-wrap gap-2">{[["neratovice","Neratovice"],["krasna-lipa","Krásná Lípa"]].map(([id,label]) => <button key={id} type="button" onClick={() => setLocationId(id)} className={`rounded-full px-4 py-2 text-sm ${locationId === id ? "bg-[#8B9A85] text-white" : "border border-[#E5CFC6] bg-white text-[#5E4238]"}`}>{label}</button>)}</div></div>}
             <div className="mt-6 flex justify-end">
-              <Button disabled={!serviceId} onClick={() => setStep(2)} data-testid="wizard-continue-to-date-button">
+              <Button disabled={!serviceId || !locationId} onClick={() => setStep(2)} data-testid="wizard-continue-to-date-button">
                 Pokračovat na termín
               </Button>
             </div>
@@ -381,24 +388,33 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
                   Jaké nehty si vysníváte?
                 </p>
                 <p className="mt-1 text-sm text-[#8A7972]">
-                  Popište barvy, tvar, délku i efekt — AI připraví fotorealistický náhled přímo k vašemu termínu.
+                  Vyberte si barvy, tvar, délku i efekt — nail artista připraví fotorealistický náhled přímo k vašemu termínu.
                   Zbývá vám {3 - booking.design_generation_count} {3 - booking.design_generation_count === 1 ? "návrh" : "návrhy"}.
                 </p>
                 <Textarea
                   value={designText}
                   onChange={(e) => setDesignText(e.target.value)}
-                  placeholder="Např.: Mandlový tvar, střední délka, odstín pryskyřicové růžové s lesklým finišem a na prsteníčku tenká zlatá linka…"
+                  placeholder="Případně doplňte vlastní přání — například na prsteníček zlatou linku…"
                   rows={4}
                   className="mt-3 bg-white"
                   data-testid="booking-ai-design-description-input"
                 />
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {[
+                    ["Tvar", designShape, setDesignShape, ["mandlový", "oválný", "square", "stiletto"]],
+                    ["Délka", designLength, setDesignLength, ["krátká", "střední", "dlouhá"]],
+                    ["Finiš", designFinish, setDesignFinish, ["lesklý", "matný", "ombré", "chrom", "třpytivý"]],
+                    ["Zdobení", designDecoration, setDesignDecoration, ["bez zdobení", "kamínky", "3D květiny", "mašličky", "mušličky", "hvězdičky", "srdíčka", "malůvky"]],
+                  ].map(([label, value, setter, values]) => <div key={label as string}><p className="text-[10px] tracking-[.16em] text-[#A98F84] uppercase">{label as string}</p><div className="mt-1 flex flex-wrap gap-1.5">{(values as string[]).map(v => <button type="button" key={v} onClick={() => (setter as (v:string)=>void)(v)} className={`rounded-full border px-2.5 py-1 text-[11px] ${value === v ? "border-[#C08272] bg-[#C08272] text-white" : "border-[#E5CFC6] bg-white text-[#6B4F45]"}`}>{v}</button>)}</div></div>)}
+                  <div className="sm:col-span-2"><p className="text-[10px] tracking-[.16em] text-[#A98F84] uppercase">Barva</p><div className="mt-1 flex flex-wrap gap-2">{[["pudrově růžová","#E9B0A6"],["nude","#D2A67E"],["sage green","#A5B19E"],["červená","#B4544A"],["černá","#222"],["bílá","#fff"],["fialová","#7C6FB1"],["modrá","#4F7791"],["zlatá","#C79A7B"]].map(([name,color]) => <button key={name} type="button" aria-label={name} onClick={() => setDesignColor(name)} className={`size-7 rounded-full border-2 ${designColor === name ? "border-[#5E4238] ring-2 ring-[#C79A7B]/40" : "border-white"}`} style={{backgroundColor:color}} />)}</div></div>
+                </div>
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <Button
-                    disabled={designText.trim().length < 10 || submitDesign.isPending}
-                    onClick={() => submitDesign.mutate()}
+                    disabled={submitDesign.isPending}
+                    onClick={() => { const description = makeDesignDescription(); setDesignText(description); submitDesign.mutate(description); }}
                     data-testid="design-submit-button"
                   >
-                    {submitDesign.isPending ? "Odesílám…" : "Nechat AI navrhnout design"}
+                    {submitDesign.isPending ? "Odesílám…" : "Nechat vytvořit návrh"}
                   </Button>
                   <Button variant="ghost" onClick={() => setDesignSent(true)} data-testid="design-skip-button">
                     Zatím vynechat

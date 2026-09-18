@@ -42,7 +42,7 @@ export default function SiteHeader() {
       }`}
     >
       <div
-        className={`mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 transition-all duration-500 sm:px-8 ${
+        className={`mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 transition-all duration-500 sm:gap-4 sm:px-8 ${
           scrolled ? "h-[4.5rem]" : "h-[5.5rem]"
         }`}
       >
@@ -52,8 +52,8 @@ export default function SiteHeader() {
           className="group flex items-center gap-3"
           aria-label="Studio M — domovská stránka"
         >
-          <LogoBadge className="w-11 shrink-0 sm:w-12" testId="header-logo-badge" />
-          <span className="flex flex-col leading-none">
+          <LogoBadge className="w-9 shrink-0 sm:w-12" testId="header-logo-badge" />
+          <span className="hidden flex-col leading-none xs:flex">
             <span className="font-heading text-lg tracking-[0.22em] whitespace-nowrap sm:text-xl text-[#5E4238] uppercase">
               Studio M
             </span>
@@ -78,7 +78,7 @@ export default function SiteHeader() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
           <LanguageSwitcher />
           <Link
             to="/admin"
@@ -88,7 +88,7 @@ export default function SiteHeader() {
             Správa
           </Link>
           <Button
-            className="gloss-hover rounded-full bg-[#5E4238] text-white transition-transform duration-300 hover:-translate-y-0.5 hover:bg-[#4A3B34]"
+            className="gloss-hover h-9 rounded-full bg-[#5E4238] px-3 text-xs text-white transition-transform duration-300 hover:-translate-y-0.5 hover:bg-[#4A3B34] sm:h-10 sm:px-4 sm:text-sm"
             render={
               <a href="#rezervace" data-testid="nav-book-appointment-button">
                 <Sparkles className="size-4" aria-hidden />

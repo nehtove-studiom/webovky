@@ -147,6 +147,8 @@ export default function Home() {
   const [shape, setShape] = useState<NailShape>("mandle");
   const [finish, setFinish] = useState<NailFinish>("glazed");
   const [length, setLength] = useState<1 | 2 | 3>(2);
+  const [accent, setAccent] = useState("#B8776A");
+  const [decoration, setDecoration] = useState("Bez zdobení");
 
   const servicesQuery = useQuery({
     queryKey: ["services"],
@@ -489,7 +491,7 @@ export default function Home() {
         <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2">
           <Reveal>
             <p className="font-heading text-[10px] tracking-[0.32em] text-[#A98F84] uppercase">
-              AI studio nehtového designu
+              Studio návrhu nehtů
             </p>
             <h2 className="mt-4 font-heading text-3xl leading-tight tracking-[0.04em] text-[#5E4238] uppercase sm:text-4xl">
               Popište, co si přejete
@@ -499,15 +501,15 @@ export default function Home() {
             </p>
             <GoldRule className="mt-5 justify-start" />
             <p className="mt-5 max-w-lg text-[0.95rem] leading-relaxed text-[#6B4F45]">
-              Při rezervaci napíšete svůj vysněný design. Agent Claude z popisu
-              připraví precizní zadání a druhý agent vygeneruje fotorealistický
-              náhled vašich nehtů — uložený přímo u vašeho termínu.
+              Vyberte si tvar, délku, barvu a ozdoby jako v profesionálním nail baru.
+              Asistentka potom předá vaše zadání nail artistovi, který připraví
+              fotorealistický náhled přímo k vašemu termínu.
             </p>
             <ol className="mt-7 space-y-3" data-testid="ai-studio-steps">
               {[
-                "Napíšete barvy, tvar, délku i efekt",
-                "Claude přemění popis na přesné zadání",
-                "Druhý agent vygeneruje náhled nehtů",
+                "Vyberete barvy, tvar, délku, efekt i ozdoby",
+                "Asistentka připraví přesné zadání",
+                "Nail artista vytvoří náhled nehtů",
                 "Návrh máme připravený u vašeho termínu",
               ].map((text, i) => (
                 <li key={text} className="flex items-start gap-3 text-sm text-[#6B4F45]">
@@ -539,7 +541,16 @@ export default function Home() {
                 length={length}
                 className="h-[300px] w-full sm:h-[340px]"
               />
+              <div className="pointer-events-none -mt-14 relative flex justify-center gap-2" aria-hidden>
+                {Array.from({ length: 5 }).map((_, i) => <span key={i} className="h-6 w-4 rounded-t-full border border-white/70 shadow-sm" style={{ backgroundColor: accent, transform: `rotate(${(i - 2) * 7}deg)` }} />)}
+              </div>
               <div className="mt-6 space-y-4" data-testid="ai-studio-controls">
+                <div>
+                  <p className="text-[10px] tracking-[0.2em] text-[#A98F84] uppercase">Barva</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {["#B8776A", "#E9B0A6", "#F6E3D9", "#A5B19E", "#5E4238", "#C79A7B", "#B4544A", "#7C6FB1", "#4F7791", "#F2C94C", "#FFFFFF", "#222222"].map((color) => <button key={color} type="button" aria-label={`Barva ${color}`} onClick={() => setAccent(color)} className={`size-7 rounded-full border-2 transition-transform hover:scale-110 ${accent === color ? "border-[#5E4238] ring-2 ring-[#C79A7B]/40" : "border-white"}`} style={{ backgroundColor: color }} />)}
+                  </div>
+                </div>
                 <div>
                   <p className="text-[10px] tracking-[0.2em] text-[#A98F84] uppercase">Tvar</p>
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -578,6 +589,12 @@ export default function Home() {
                         {FINISH_LABELS[f]}
                       </button>
                     ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] tracking-[0.2em] text-[#A98F84] uppercase">Zdobení</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {["Bez zdobení", "Kamínky", "3D květiny", "Mašličky", "Mušličky", "Hvězdičky", "Srdíčka", "Malůvky"].map((item) => <button key={item} type="button" onClick={() => setDecoration(item)} className={`rounded-full border px-3 py-1 text-[11px] ${decoration === item ? "border-[#C79A7B] bg-[#C79A7B] text-white" : "border-[#E5CFC6] bg-white text-[#6B4F45]"}`}>{item}</button>)}
                   </div>
                 </div>
                 <div>

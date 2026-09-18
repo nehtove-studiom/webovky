@@ -9,8 +9,8 @@ const CARDS = [
     icon: Tag,
     title: "CENÍK",
     sub: "na služby",
-    target: "#sluzby",
-    bg: "linear-gradient(160deg, #EFC3B8 0%, #E3A79B 55%, #D9978A 100%)",
+    target: "#provozovny",
+    bg: "radial-gradient(circle at 15% 10%, rgba(255,255,255,.42) 0 2%, transparent 2.5%), linear-gradient(160deg, #E9B0A6 0%, #DFA096 55%, #EAC3B9 100%)",
     ink: "#FFFFFF",
   },
   {
@@ -19,7 +19,7 @@ const CARDS = [
     title: "UKÁZKY",
     sub: "prací",
     target: "#galerie",
-    bg: "linear-gradient(160deg, #AFBAA8 0%, #9BA894 55%, #8B9A85 100%)",
+    bg: "radial-gradient(circle at 85% 13%, rgba(255,255,255,.35) 0 2%, transparent 2.5%), linear-gradient(160deg, #BBC1B2 0%, #9EA999 55%, #B8BCAA 100%)",
     ink: "#FFFFFF",
   },
   {
@@ -28,7 +28,7 @@ const CARDS = [
     title: "RECENZE",
     sub: "klientek",
     target: "#recenze",
-    bg: "linear-gradient(160deg, #FBF1EA 0%, #F6E3D9 55%, #EFD6C9 100%)",
+    bg: "radial-gradient(circle at 14% 15%, rgba(209,162,132,.25) 0 2%, transparent 2.5%), linear-gradient(160deg, #FFF8F1 0%, #F4E2D7 58%, #F8EAE1 100%)",
     ink: "#6B4F45",
   },
   {
@@ -37,7 +37,7 @@ const CARDS = [
     title: "OBJEDNÁNÍ",
     sub: "online",
     target: "#rezervace",
-    bg: "linear-gradient(160deg, #F0BDB0 0%, #E7A899 55%, #DE9787 100%)",
+    bg: "radial-gradient(circle at 80% 16%, rgba(255,255,255,.35) 0 2%, transparent 2.5%), linear-gradient(160deg, #EAB0A6 0%, #D9958B 55%, #E5AAA0 100%)",
     ink: "#FFFFFF",
   },
   {
@@ -46,7 +46,7 @@ const CARDS = [
     title: "AKCE",
     sub: "a slevy",
     target: "#akce",
-    bg: "linear-gradient(160deg, #F7E2D6 0%, #F0D2C2 55%, #E8C2AE 100%)",
+    bg: "radial-gradient(circle at 18% 12%, rgba(255,255,255,.55) 0 2%, transparent 2.5%), linear-gradient(160deg, #FFF7F0 0%, #EFD9CB 55%, #F8E8DD 100%)",
     ink: "#6B4F45",
   },
 ];
@@ -59,23 +59,25 @@ export default function MenuCards() {
           key={card.id}
           href={card.target}
           data-testid={`menu-card-${card.id}`}
-          className="watercolor gloss-hover group relative flex aspect-[3/5] flex-col items-center justify-end overflow-hidden rounded-[18px] p-4 text-center transition-all duration-500 hover:-translate-y-1.5 hover:shadow-[0_24px_46px_-22px_rgba(74,59,52,0.45)]"
+          className="watercolor gloss-hover group relative flex aspect-[.62] flex-col items-center justify-end overflow-hidden rounded-[22px] p-4 text-center shadow-[0_12px_28px_-20px_rgba(74,59,52,.45)] transition-all duration-500 hover:-translate-y-1.5 hover:shadow-[0_24px_46px_-22px_rgba(74,59,52,0.45)] sm:rounded-[26px] sm:p-5"
           style={{ background: card.bg, color: card.ink }}
         >
-          {/* jemný zlatý obrys jako v předloze */}
+          {/* jemný zlatý obrys a botanický ornament jako v předloze */}
           <span
-            className="pointer-events-none absolute inset-2 rounded-[13px] border border-dashed opacity-50"
+            className="pointer-events-none absolute inset-2 rounded-[17px] border border-dashed opacity-55"
             style={{ borderColor: card.ink === "#FFFFFF" ? "rgba(255,255,255,0.75)" : "rgba(199,154,123,0.8)" }}
             aria-hidden
           />
+          <span className="pointer-events-none absolute -bottom-3 -left-2 text-5xl leading-none opacity-25" aria-hidden>❦</span>
+          <span className="pointer-events-none absolute -top-2 -right-1 text-4xl leading-none opacity-20" aria-hidden>✦</span>
           <card.icon
-            className="mb-auto mt-2 size-9 transition-transform duration-500 group-hover:scale-110"
-            strokeWidth={1.2}
+            className="mb-auto mt-3 size-10 transition-transform duration-500 group-hover:scale-110 sm:size-12"
+            strokeWidth={1.05}
             aria-hidden
           />
-          <p className="font-heading text-base tracking-[0.12em]">{card.title}</p>
-          <p className="mt-0.5 text-[11px] tracking-[0.08em] opacity-85">{card.sub}</p>
-          <span className="mt-2 text-sm opacity-80" aria-hidden>
+          <p className="font-heading text-sm tracking-[0.12em] sm:text-base">{card.title}</p>
+          <p className="mt-1 text-[10px] tracking-[0.1em] opacity-85 sm:text-[11px]">{card.sub}</p>
+          <span className="mt-3 text-sm opacity-80" aria-hidden>
             ♥
           </span>
         </a>

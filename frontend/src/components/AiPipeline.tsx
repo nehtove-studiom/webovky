@@ -11,15 +11,15 @@ const STEPS = [
   {
     key: "prompt" as const,
     icon: Sparkles,
-    title: "Agent 1 · Claude",
-    pending: "Claude přečte váš popis a připraví přesné zadání pro obrázek.",
-    active: "Claude přeměňuje váš popis na precizní prompt pro generování obrázku…",
+    title: "Asistentka Studio M",
+    pending: "Asistentka přečte váš popis a připraví přesné zadání pro obrázek.",
+    active: "Asistentka připravuje precizní zadání pro návrh…",
     done: "Prompt připraven — popis jsme přeložili do přesného zadání pro obrázek.",
   },
   {
     key: "image" as const,
     icon: ImageIcon,
-    title: "Agent 2 · Execution Agent",
+    title: "Nail artista",
     pending: "Generátor obrázků vytvoří fotorealistickou ukázku vašich nehtů.",
     active: "Generuje se fotorealistický návrh — obvykle to trvá půl minuty…",
     done: "Fotorealistický návrh vašich nehtů je hotový.",
@@ -89,7 +89,7 @@ export function AiPipeline({ booking }: { booking: Booking }) {
               {step.key === "prompt" && booking.design_prompt && (
                 <div className="mt-2">
                   <Button variant="ghost" size="xs" onClick={() => setShowPrompt((v) => !v)} data-testid="toggle-design-prompt-button">
-                    {showPrompt ? "Skrýt prompt" : "Zobrazit prompt agenta Claude"}
+                    {showPrompt ? "Skrýt zadání" : "Zobrazit zadání asistentky"}
                   </Button>
                   {showPrompt && (
                     <p
@@ -130,7 +130,7 @@ export function AiPipeline({ booking }: { booking: Booking }) {
             className="w-full rounded-2xl border border-[#EFDCD4] shadow-[0_18px_50px_-24px_rgba(28,25,23,0.35)]"
           />
           <figcaption className="mt-2 text-center text-xs tracking-[0.14em] text-[#8A7972] uppercase">
-            Návrh vytvořený agenty Studio M
+            Návrh vytvořený týmem Studio M
           </figcaption>
         </figure>
       )}

@@ -144,13 +144,14 @@ async def create_booking(input: BookingCreate) -> Booking:
             detail="Vybraný termín je bohužel už obsazený. Vyberte prosím jiný čas.",
         )
 
-    # Provozovna podle plánu týdne (klient ji může poslat, jinak ji dohledáme)
+    # Provozovna se vždy vybírá před termínem; plán týdne slouží jen jako výchozí návrh.
     location = await location_for_date(day)
     location_id = input.location_id or (location.id if location else None)
-    location_name = location.name if location else None
-    if input.location_id and location and input.location_id != location.id:
-        # plán týdne má přednost — technička je jen jedna
-        location_id = location.id
+    location_name = location.name if location and location.id == location_id else None
+    if input.location_id:
+        from routers.locations import LOCATIONS_BY_ID
+        selected_location = LOCATIONS_BY_ID.get(input.location_id)
+        location_name = selected_location.name if selected_location else None
 
     payload = input.model_dump()
     payload["location_id"] = location_id
