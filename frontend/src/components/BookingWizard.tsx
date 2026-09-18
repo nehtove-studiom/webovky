@@ -103,6 +103,16 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
       toast.error(czechError(error, "Návrh se nepodařilo odeslat. Zkuste to prosím znovu.")),
   });
 
+  const approveDesign = useMutation({
+    mutationFn: () => apiPost<Booking>(`/bookings/${bookingId}/approve-design`, {}),
+    onSuccess: () => {
+      void bookingQuery.refetch();
+      toast.success("Návrh jsme přiložili k vašemu termínu.");
+    },
+    onError: (error) =>
+      toast.error(czechError(error, "Návrh se zatím nepodařilo uložit ke kalendáři.")),
+  });
+
   const pipelineRunning = booking ? PROCESSING.includes(booking.pipeline_status) : false;
 
   const reset = () => {
@@ -406,10 +416,25 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
             )}
 
             {!pipelineRunning && booking?.pipeline_status === "done" && (
-              <p className="rounded-2xl bg-[#F8EAE3] p-4 text-sm text-[#6B4F45]" data-testid="pipeline-done-note">
-                Návrh je hotový a uložený u vaší rezervace. Paní M. ho na místě přesně zopakuje — můžete klidně
-                zavřít počítač a těšit se.
-              </p>
+              <div className="rounded-2xl bg-[#F8EAE3] p-4 text-sm text-[#6B4F45]" data-testid="pipeline-done-note">
+                <p>
+                  Návrh je hotový. Pokud se vám líbí, potvrďte ho a paní M. ho uvidí přímo u vašeho termínu v kalendáři.
+                </p>
+                {booking.design_approved ? (
+                  <p className="mt-3 font-medium text-[#5E4238]" data-testid="design-approved-note">
+                    Návrh je přiložený k vašemu termínu v kalendáři.
+                  </p>
+                ) : (
+                  <Button
+                    className="mt-3"
+                    onClick={() => approveDesign.mutate()}
+                    disabled={approveDesign.isPending}
+                    data-testid="design-approve-button"
+                  >
+                    {approveDesign.isPending ? "Ukládám…" : "Návrh se mi líbí — přiložit k termínu"}
+                  </Button>
+                )}
+              </div>
             )}
 
             <div className="flex justify-end">

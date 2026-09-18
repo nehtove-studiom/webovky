@@ -64,6 +64,8 @@ class Booking(BaseModel):
     has_design_image: bool = False
     # Ke každému potvrzenému termínu lze vytvořit maximálně tři AI návrhy.
     design_generation_count: int = Field(default=0, ge=0, le=3)
+    # Návrh se ke kalendářové události přidává až po výslovném souhlasu klientky.
+    design_approved: bool = False
     status: BookingStatus = "nova"
     # none = čeká na popis, prompt/image/calendar = pipeline běží, done/failed = konec
     pipeline_status: PipelineStatus = "none"

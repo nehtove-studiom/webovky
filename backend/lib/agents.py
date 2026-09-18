@@ -22,8 +22,9 @@ logger = logging.getLogger(__name__)
 
 CLAUDE_MODEL = "claude-sonnet-4-5-20250929"
 IMAGE_MODEL_OPENAI = "gpt-image-1"
-IMAGE_MODEL_NANO_BANANA = "gemini-2.5-flash-image"
-IMAGE_MODEL_IMAGEN = "imagen-3.0-generate-002"
+# Nejlevnější vhodný model pro náhledy nehtů. Starší 2.5 Flash Image končí
+# v říjnu 2026 a Imagen už pro Gemini Developer API není dostupný.
+IMAGE_MODEL_NANO_BANANA = "gemini-3.1-flash-lite-image"
 
 CLAUDE_SYSTEM = (
     "Jsi prompt agent beauty studia Studio M. Tvoje jediná úloha: vezmi popis "
@@ -108,29 +109,9 @@ def _gemini_nanobanana_sync(api_key: str, prompt: str) -> bytes:
     raise RuntimeError("Nano banana nevrátil obrázek.")
 
 
-def _gemini_imagen_sync(api_key: str, prompt: str) -> bytes:
-    """Vlastní Gemini klíč — Imagen přes Vertex režim."""
-    from google import genai
-    from google.genai import types
-
-    client = genai.Client(api_key=api_key, vertexai=True)
-    response = client.models.generate_images(
-        model=IMAGE_MODEL_IMAGEN,
-        prompt=prompt,
-        config=types.GenerateImagesConfig(number_of_images=1),
-    )
-    return response.generated_images[0].image.image_bytes
-
-
 async def _gemini_generate_image(api_key: str, prompt: str) -> bytes:
-    try:
-        image = await asyncio.to_thread(_gemini_nanobanana_sync, api_key, prompt)
-        logger.info("Agent 2 (Execution): obrázek z vlastního Gemini klíče (nano banana)")
-        return image
-    except Exception as exc:
-        logger.warning("Gemini nano banana selhalo (%s) — zkouším Imagen/Vertex", exc)
-    image = await asyncio.to_thread(_gemini_imagen_sync, api_key, prompt)
-    logger.info("Agent 2 (Execution): obrázek z vlastního Gemini klíče (Imagen/Vertex)")
+    image = await asyncio.to_thread(_gemini_nanobanana_sync, api_key, prompt)
+    logger.info("Agent 2 (Nail Stylist): obrázek z Gemini Flash Lite Image")
     return image
 
 
@@ -154,15 +135,12 @@ async def _emergent_generate_image(prompt: str) -> bytes:
 async def execution_agent_generate_image(prompt: str) -> bytes:
     """Agent 2 — Execution Agent: prompt → fotorealistický obrázek nehtů.
 
-    Pořadí engine: vlastní GEMINI_API_KEY (nano banana → Imagen/Vertex),
-    potom automatická záloha na Emergent engine.
+    Pro produkci používá pouze vlastní Gemini klíč a levný Flash Lite Image
+    model. Dražší vývojová záloha se smí použít jen po výslovném nastavení.
     """
     gemini_key = os.environ.get("GEMINI_API_KEY")
     if gemini_key:
-        try:
-            return await _gemini_generate_image(gemini_key, prompt)
-        except Exception as exc:
-            logger.warning(
-                "Vlastní Gemini klíč selhal (%s) — automatická záloha na Emergent engine", exc
-            )
-    return await _emergent_generate_image(prompt)
+        return await _gemini_generate_image(gemini_key, prompt)
+    if os.environ.get("ALLOW_EMERGENT_IMAGE_FALLBACK", "").lower() == "true":
+        return await _emergent_generate_image(prompt)
+    raise RuntimeError("Chybí GEMINI_API_KEY pro generování návrhů nehtů.")

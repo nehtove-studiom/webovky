@@ -230,22 +230,8 @@ async def run_design_pipeline(booking_id: str) -> None:
             {"$set": {"has_design_image": True, "pipeline_status": "calendar", "updated_at": utcnow()}},
         )
 
-        # Obrázek i popis putují k termínu v Google Kalendáři
-        if doc.get("event_id") and await gcalendar.is_connected():
-            try:
-                tokens = await gcalendar.get_owner_tokens()
-                await asyncio.to_thread(
-                    gcalendar.append_image_link_sync,
-                    tokens,
-                    doc["event_id"],
-                    _image_url(booking_id),
-                )
-                await db.bookings.update_one(
-                    {"id": booking_id},
-                    {"$set": {"calendar_synced": True, "updated_at": utcnow()}},
-                )
-            except Exception:
-                logger.exception("Doplnění obrázku do kalendáře selhalo")
+        # Obrázek se zatím do kalendáře nepřidává. Čekáme na výslovný souhlas
+        # zákaznice přes endpoint approve-design.
 
         await db.bookings.update_one(
             {"id": booking_id},
@@ -294,6 +280,7 @@ async def submit_design(booking_id: str, input: DesignSubmit) -> Booking:
             "$inc": {"design_generation_count": 1},
             "$set": {
                 "design_description": input.design_description.strip(),
+                "design_approved": False,
                 "pipeline_status": "prompt",
                 "pipeline_error": None,
                 "updated_at": utcnow(),
@@ -310,6 +297,42 @@ async def submit_design(booking_id: str, input: DesignSubmit) -> Booking:
         raise HTTPException(status_code=409, detail="Návrh designu už se právě zpracovává.")
     # Pipeline běží na pozadí — frontend polluje GET /bookings/{id}
     asyncio.create_task(run_design_pipeline(booking_id))
+    return _booking_from_doc(fresh)
+
+
+@router.post("/bookings/{booking_id}/approve-design", response_model=Booking)
+async def approve_design(booking_id: str) -> Booking:
+    """Po souhlasu klientky přidá náhled designu k jejímu termínu v kalendáři."""
+    doc = await db.bookings.find_one({"id": booking_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Rezervace nenalezena.")
+    if not doc.get("has_design_image"):
+        raise HTTPException(status_code=409, detail="Nejdřív je potřeba dokončit generování návrhu.")
+    if doc.get("design_approved"):
+        return _booking_from_doc(doc)
+    if not doc.get("event_id") or not await gcalendar.is_connected():
+        raise HTTPException(
+            status_code=409,
+            detail="Kalendář studia zatím není připojený. Návrh nelze k termínu uložit.",
+        )
+
+    try:
+        tokens = await gcalendar.get_owner_tokens()
+        await asyncio.to_thread(
+            gcalendar.append_image_link_sync,
+            tokens,
+            doc["event_id"],
+            _image_url(booking_id),
+        )
+    except Exception:
+        logger.exception("Doplnění schváleného návrhu do kalendáře selhalo")
+        raise HTTPException(status_code=502, detail="Návrh se do kalendáře nepodařilo uložit. Zkuste to prosím znovu.")
+
+    await db.bookings.update_one(
+        {"id": booking_id},
+        {"$set": {"design_approved": True, "calendar_synced": True, "updated_at": utcnow()}},
+    )
+    fresh = await db.bookings.find_one({"id": booking_id})
     return _booking_from_doc(fresh)
 
 
