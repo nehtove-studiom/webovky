@@ -13,15 +13,12 @@ nikdy nezastaví výpadek externího engine.
 import asyncio
 import logging
 import os
-import uuid
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage
-from emergentintegrations.llm.openai.image_generation import OpenAIImageGeneration
+from anthropic import AsyncAnthropic
 
 logger = logging.getLogger(__name__)
 
 CLAUDE_MODEL = "claude-sonnet-4-5-20250929"
-IMAGE_MODEL_OPENAI = "gpt-image-1"
 # Nejlevnější vhodný model pro náhledy nehtů. Starší 2.5 Flash Image končí
 # v říjnu 2026 a Imagen už pro Gemini Developer API není dostupný.
 IMAGE_MODEL_NANO_BANANA = "gemini-3.1-flash-lite-image"
@@ -42,21 +39,11 @@ CLAUDE_SYSTEM = (
 
 
 def anthropic_keys() -> list[str]:
-    """Klíče pro Claude v pořadí priority: vlastní klíč studia, pak Emergent.
-
-    Vlastní klíč může přestat platit (rotace, vypršení) — proto vracíme seznam
-    a volající zkusí další v řadě, aby asistentka i návrhy designu běžely dál.
-    """
-    keys = [os.environ.get("ANTHROPIC_API_KEY"), os.environ.get("EMERGENT_LLM_KEY")]
-    seen: set[str] = set()
-    out: list[str] = []
-    for key in keys:
-        if key and key not in seen:
-            seen.add(key)
-            out.append(key)
-    if not out:
-        raise RuntimeError("Chybí ANTHROPIC_API_KEY i EMERGENT_LLM_KEY v backend/.env")
-    return out
+    """Vlastní Claude klíč studia uložený mimo repozitář."""
+    key = os.environ.get("ANTHROPIC_API_KEY")
+    if not key:
+        raise RuntimeError("Chybí ANTHROPIC_API_KEY v nastavení služby.")
+    return [key]
 
 
 async def claude_prompt_agent(design_description: str, service_name: str) -> str:
@@ -70,14 +57,15 @@ async def claude_prompt_agent(design_description: str, service_name: str) -> str
 
     for index, api_key in enumerate(keys):
         try:
-            chat = LlmChat(
-                api_key=api_key,
-                session_id=f"studio-m-prompt-{uuid.uuid4().hex[:8]}",
-                system_message=CLAUDE_SYSTEM,
+            response = await AsyncAnthropic(api_key=api_key).messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=2048,
+                system=CLAUDE_SYSTEM,
+                messages=[{"role": "user", "content": user_text}],
             )
-            chat.with_model("anthropic", CLAUDE_MODEL)
-            chat.with_params(max_tokens=2048)
-            prompt = await chat.send_message(UserMessage(text=user_text))
+            prompt = "".join(
+                block.text for block in response.content if block.type == "text"
+            )
             prompt = (prompt or "").strip().strip('"').strip()
             if not prompt:
                 raise RuntimeError("Claude nevrátil žádný prompt.")
@@ -115,23 +103,6 @@ async def _gemini_generate_image(api_key: str, prompt: str) -> bytes:
     return image
 
 
-async def _emergent_generate_image(prompt: str) -> bytes:
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
-    if not api_key:
-        raise RuntimeError("Chybí GEMINI_API_KEY i EMERGENT_LLM_KEY v backend/.env")
-    generator = OpenAIImageGeneration(api_key=api_key)
-    images = await generator.generate_images(
-        prompt=prompt,
-        model=IMAGE_MODEL_OPENAI,
-        number_of_images=1,
-        quality="medium",
-    )
-    if not images or not images[0]:
-        raise RuntimeError("Generátor obrázků nevrátil žádná data.")
-    logger.info("Agent 2 (Execution): obrázek z Emergent engine (%d bajtů)", len(images[0]))
-    return images[0]
-
-
 async def execution_agent_generate_image(prompt: str) -> bytes:
     """Agent 2 — Execution Agent: prompt → fotorealistický obrázek nehtů.
 
@@ -141,6 +112,4 @@ async def execution_agent_generate_image(prompt: str) -> bytes:
     gemini_key = os.environ.get("GEMINI_API_KEY")
     if gemini_key:
         return await _gemini_generate_image(gemini_key, prompt)
-    if os.environ.get("ALLOW_EMERGENT_IMAGE_FALLBACK", "").lower() == "true":
-        return await _emergent_generate_image(prompt)
     raise RuntimeError("Chybí GEMINI_API_KEY pro generování návrhů nehtů.")

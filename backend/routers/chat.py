@@ -18,7 +18,7 @@ from uuid import uuid4
 import httpx
 from fastapi import APIRouter, HTTPException
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+from anthropic import AsyncAnthropic
 
 from bson import Binary
 
@@ -151,6 +151,15 @@ TOOLS: list[dict[str, Any]] = [
             },
         },
     },
+]
+
+CLAUDE_TOOLS = [
+    {
+        "name": tool["function"]["name"],
+        "description": tool["function"]["description"],
+        "input_schema": tool["function"]["parameters"],
+    }
+    for tool in TOOLS
 ]
 
 
@@ -399,10 +408,6 @@ async def _run_claude_assistant(
         f"{SYSTEM_PROMPT}\n\nDnešní datum je {today_iso()} "
         "(časová zóna Europe/Prague)."
     )
-    initial: list[dict[str, Any]] = [{"role": "system", "content": system}]
-    for turn in history:
-        initial.append({"role": turn.role, "content": turn.content})
-
     keys = anthropic_keys()
     last_error: Exception | None = None
 
@@ -411,33 +416,52 @@ async def _run_claude_assistant(
         image_url: str | None = None
         actions: list[str] = []
         try:
-            chat = LlmChat(
-                api_key=api_key,
-                session_id=session_id,
-                system_message=system,
-                initial_messages=initial,
+            client = AsyncAnthropic(api_key=api_key)
+            messages: list[dict[str, Any]] = [
+                {"role": turn.role, "content": turn.content} for turn in history
+            ]
+            messages.append({"role": "user", "content": message})
+            response = await client.messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=1600,
+                system=system,
+                tools=CLAUDE_TOOLS,
+                messages=messages,
             )
-            chat.with_model("anthropic", CLAUDE_MODEL)
-            chat.with_params(max_tokens=1600)
-            chat.with_tools(TOOLS)
-
-            response = await chat.send_message_with_tools(UserMessage(text=message))
             for _ in range(MAX_TOOL_ROUNDS):
-                if not response.tool_calls:
+                tool_uses = [block for block in response.content if block.type == "tool_use"]
+                if not tool_uses:
                     break
-                for call in response.tool_calls:
+                tool_results: list[dict[str, Any]] = []
+                for call in tool_uses:
                     result, created_id, created_image = await _run_tool(
-                        call.name, call.arguments or {}
+                        call.name, call.input or {}
                     )
                     if created_id:
                         booking_id = created_id
                     if created_image:
                         image_url = created_image
                     actions.append(call.name)
-                    chat.add_tool_result(call.id, json.dumps(result, ensure_ascii=False))
-                response = await chat.send_message_with_tools()
+                    tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": call.id,
+                            "content": json.dumps(result, ensure_ascii=False),
+                        }
+                    )
+                messages.append({"role": "assistant", "content": response.content})
+                messages.append({"role": "user", "content": tool_results})
+                response = await client.messages.create(
+                    model=CLAUDE_MODEL,
+                    max_tokens=1600,
+                    system=system,
+                    tools=CLAUDE_TOOLS,
+                    messages=messages,
+                )
 
-            reply = (response.content or "").strip()
+            reply = "".join(
+                block.text for block in response.content if block.type == "text"
+            ).strip()
             if not reply:
                 reply = (
                     "Omlouvám se, teď se mi nepodařilo odpovědět. Zkusíte to prosím "
