@@ -24,6 +24,11 @@ SCOPES = ["https://www.googleapis.com/auth/calendar"]
 TIMEZONE = "Europe/Prague"
 
 
+def calendar_id() -> str:
+    """ID sdíleného firemního kalendáře; lokálně lze ponechat primary."""
+    return os.environ.get("GOOGLE_CALENDAR_ID", "primary")
+
+
 def is_configured() -> bool:
     return bool(os.environ.get("GOOGLE_CLIENT_ID")) and bool(
         os.environ.get("GOOGLE_CLIENT_SECRET")
@@ -153,7 +158,7 @@ def create_event_sync(tokens: dict, doc: dict) -> str | None:
         _service(tokens)
         .events()
         .insert(
-            calendarId="primary",
+            calendarId=calendar_id(),
             body={
                 "summary": f"Studio M — {doc['service_name']} · {doc['name']}",
                 "description": description,
@@ -176,7 +181,7 @@ def append_image_link_sync(tokens: dict, event_id: str, image_url: str) -> None:
     """Doplň odkaz na AI návrh designu do popisu existující události."""
     service = _service(tokens)
     event = (
-        service.events().get(calendarId="primary", eventId=event_id).execute()
+        service.events().get(calendarId=calendar_id(), eventId=event_id).execute()
     )
     note = (
         f"\n\n🎨 AI návrh designu nehtů: {image_url}"
@@ -184,6 +189,6 @@ def append_image_link_sync(tokens: dict, event_id: str, image_url: str) -> None:
     )
     event["description"] = (event.get("description") or "") + note
     service.events().update(
-        calendarId="primary", eventId=event_id, body=event
+        calendarId=calendar_id(), eventId=event_id, body=event
     ).execute()
     logger.info("Obrázek designu doplňen do události %s", event_id)
