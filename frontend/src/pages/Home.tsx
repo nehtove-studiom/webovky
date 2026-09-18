@@ -22,6 +22,7 @@ import LogoBadge from "@/components/LogoBadge";
 import LocationsSection, { CurrentWeekBanner } from "@/components/LocationsSection";
 import MenuCards from "@/components/MenuCards";
 import NailCollection from "@/components/NailCollection";
+import NailDesignStudio from "@/components/NailDesignStudio";
 import NailPreview, {
   FINISH_LABELS,
   SHAPE_LABELS,
@@ -535,16 +536,17 @@ export default function Home() {
 
           <Reveal delay={0.1}>
             <div className="rounded-[26px] border border-[#E5CFC6] bg-[#FBF1EC] p-5 sm:p-7">
+              <NailDesignStudio />
               <NailPreview
                 shape={shape}
                 finish={finish}
                 length={length}
-                className="h-[300px] w-full sm:h-[340px]"
+                className="hidden h-[300px] w-full sm:h-[340px]"
               />
-              <div className="pointer-events-none -mt-14 relative flex justify-center gap-2" aria-hidden>
+              <div className="pointer-events-none -mt-14 relative hidden justify-center gap-2" aria-hidden>
                 {Array.from({ length: 5 }).map((_, i) => <span key={i} className="h-6 w-4 rounded-t-full border border-white/70 shadow-sm" style={{ backgroundColor: accent, transform: `rotate(${(i - 2) * 7}deg)` }} />)}
               </div>
-              <div className="mt-6 space-y-4" data-testid="ai-studio-controls">
+              <div className="mt-6 hidden space-y-4" data-testid="ai-studio-controls">
                 <div>
                   <p className="text-[10px] tracking-[0.2em] text-[#A98F84] uppercase">Barva</p>
                   <div className="mt-2 flex flex-wrap gap-2">
