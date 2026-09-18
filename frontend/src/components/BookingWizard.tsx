@@ -364,15 +364,15 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
               </div>
             </div>
 
-            {!showPipeline && (
+            {booking && !pipelineRunning && booking.design_generation_count < 3 && (
               <div className="rounded-2xl border border-[#EFDCD4] bg-[#FAF3EE]/70 p-5" data-testid="design-description-form">
                 <p className="flex items-center gap-2 font-heading text-lg text-[#5E4238]">
                   <Sparkles className="size-4 text-[#C08272]" aria-hidden />
                   Jaké nehty si vysníváte?
                 </p>
                 <p className="mt-1 text-sm text-[#8A7972]">
-                  Popište barvy, tvar, délku i efekt — Claude z popisu připraví přesné zadání a Execution Agent
-                  vygeneruje fotorealistický náhled přímo k vašemu termínu.
+                  Popište barvy, tvar, délku i efekt — AI připraví fotorealistický náhled přímo k vašemu termínu.
+                  Zbývá vám {3 - booking.design_generation_count} {3 - booking.design_generation_count === 1 ? "návrh" : "návrhy"}.
                 </p>
                 <Textarea
                   value={designText}
@@ -398,6 +398,12 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
             )}
 
             {showPipeline && booking && <AiPipeline booking={booking} />}
+
+            {booking && !pipelineRunning && booking.design_generation_count >= 3 && (
+              <p className="rounded-2xl bg-[#F8EAE3] p-4 text-sm text-[#6B4F45]" data-testid="design-limit-reached-note">
+                Pro tento termín jste už využila všechny 3 návrhy. Vybraný návrh zůstává uložený u rezervace.
+              </p>
+            )}
 
             {!pipelineRunning && booking?.pipeline_status === "done" && (
               <p className="rounded-2xl bg-[#F8EAE3] p-4 text-sm text-[#6B4F45]" data-testid="pipeline-done-note">

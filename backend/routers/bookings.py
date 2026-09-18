@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 
 from bson import Binary
 from fastapi import APIRouter, HTTPException, Response
+from pymongo import ReturnDocument
 
 from lib import gcalendar
 from lib.agents import claude_prompt_agent, execution_agent_generate_image
@@ -256,6 +257,8 @@ async def run_design_pipeline(booking_id: str) -> None:
         await db.bookings.update_one(
             {"id": booking_id},
             {
+                # Selhaný výstup se zákaznici do limitu nepočítá.
+                "$inc": {"design_generation_count": -1},
                 "$set": {
                     "pipeline_status": "failed",
                     "pipeline_error": str(exc)[:600],
@@ -275,9 +278,20 @@ async def submit_design(booking_id: str, input: DesignSubmit) -> Booking:
             status_code=409, detail="Návrh designu už se právě zpracovává."
         )
 
-    await db.bookings.update_one(
-        {"id": booking_id},
+    # Limit rezervujeme atomicky, aby jej nešlo obejít několika kliknutími
+    # nebo otevřením formuláře ve více oknech.
+    fresh = await db.bookings.find_one_and_update(
         {
+            "id": booking_id,
+            "status": {"$ne": "zrusena"},
+            "pipeline_status": {"$nin": list(PROCESSING_STATES)},
+            "$or": [
+                {"design_generation_count": {"$lt": 3}},
+                {"design_generation_count": {"$exists": False}},
+            ],
+        },
+        {
+            "$inc": {"design_generation_count": 1},
             "$set": {
                 "design_description": input.design_description.strip(),
                 "pipeline_status": "prompt",
@@ -285,10 +299,17 @@ async def submit_design(booking_id: str, input: DesignSubmit) -> Booking:
                 "updated_at": utcnow(),
             }
         },
+        return_document=ReturnDocument.AFTER,
     )
+    if not fresh:
+        current = await db.bookings.find_one({"id": booking_id})
+        if current and current.get("status") == "zrusena":
+            raise HTTPException(status_code=409, detail="Ke zrušené rezervaci nelze vytvářet návrhy.")
+        if current and int(current.get("design_generation_count", 0)) >= 3:
+            raise HTTPException(status_code=429, detail="K této rezervaci už byly využity všechny 3 návrhy.")
+        raise HTTPException(status_code=409, detail="Návrh designu už se právě zpracovává.")
     # Pipeline běží na pozadí — frontend polluje GET /bookings/{id}
     asyncio.create_task(run_design_pipeline(booking_id))
-    fresh = await db.bookings.find_one({"id": booking_id})
     return _booking_from_doc(fresh)
 
 

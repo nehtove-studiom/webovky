@@ -68,6 +68,7 @@ export interface Booking {
   design_description: string | null;
   design_prompt: string | null;
   has_design_image: boolean;
+  design_generation_count: number;
   status: BookingStatus;
   pipeline_status: PipelineStatus;
   pipeline_error: string | null;
