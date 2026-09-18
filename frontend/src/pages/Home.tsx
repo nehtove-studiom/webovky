@@ -43,6 +43,10 @@ import {
 } from "@/lib/photos";
 import type { Service } from "@/types";
 
+// Připraveno pro pozdější spuštění po dodání finálních herních assetů.
+// Kód zůstává v repozitáři, ale veřejně se nyní nevykresluje.
+const SHOW_NAIL_GAME = false;
+
 const FEATURES = [
   { icon: ShieldCheck, title: "Sterilně", sub: "a bezpečně" },
   { icon: Diamond, title: "Premium", sub: "materiály" },
@@ -487,8 +491,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== AI STUDIO ===== */}
-      <section id="ai-studio" className="scroll-mt-24 bg-[#F3E4DC] px-3 py-16 sm:px-5 sm:py-20">
+      {/* ===== AI STUDIO — dočasně skryto, herní návrhář je připravený v repozitáři ===== */}
+      {SHOW_NAIL_GAME && <section id="ai-studio" className="scroll-mt-24 bg-[#F3E4DC] px-3 py-16 sm:px-5 sm:py-20">
         <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2">
           <Reveal>
             <p className="font-heading text-[10px] tracking-[0.32em] text-[#A98F84] uppercase">
@@ -623,7 +627,7 @@ export default function Home() {
             </div>
           </Reveal>
         </div>
-      </section>
+      </section>}
 
       {/* ===== PROVOZOVNY ===== */}
       <section id="provozovny" className="scroll-mt-24 px-3 pb-16 sm:px-5 sm:pb-20">

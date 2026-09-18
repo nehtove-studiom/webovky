@@ -11,7 +11,6 @@ import LogoBadge from "@/components/LogoBadge";
 const ANCHORS = [
   { href: "#sluzby", label: "Služby", num: "02" },
   { href: "#kolekce", label: "Kolekce", num: "04" },
-  { href: "#ai-studio", label: "AI design", num: "05" },
   { href: "#provozovny", label: "Provozovny", num: "06" },
   { href: "#recenze", label: "Recenze", num: "08" },
 ];

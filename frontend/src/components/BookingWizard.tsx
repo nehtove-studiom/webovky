@@ -19,6 +19,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import NailDesignStudio from "@/components/NailDesignStudio";
 
+// Návrhář se vrátí až s finálními assety; implementace zůstává připravená.
+const SHOW_NAIL_GAME = false;
+
 const STEP_NAMES = ["Služba", "Termín", "Kontakt", "Návrh"];
 const PROCESSING = ["prompt", "image", "calendar"];
 
@@ -382,7 +385,7 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
               </div>
             </div>
 
-            {booking && !pipelineRunning && booking.design_generation_count < 3 && (
+            {SHOW_NAIL_GAME && booking && !pipelineRunning && booking.design_generation_count < 3 && (
               <div className="rounded-2xl border border-[#EFDCD4] bg-[#FAF3EE]/70 p-5" data-testid="design-description-form">
                 <p className="flex items-center gap-2 font-heading text-lg text-[#5E4238]">
                   <Sparkles className="size-4 text-[#C08272]" aria-hidden />
