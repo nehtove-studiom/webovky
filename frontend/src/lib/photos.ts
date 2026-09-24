@@ -8,15 +8,15 @@ export const STUDIO_LOGO =
 
 // Fotky nehtů od klientky (public/nehty) — hlavní vizuály webu
 export const STUDIO_FOTO = {
-  floralArt: "/nehty/floral-art-hands.jpg",
-  nudeMatteAlmond: "/nehty/nude-matte-almond.jpg",
-  velvetNude: "/nehty/velvet-nude-hands.jpg",
-  goldFlowerSilk: "/nehty/gold-flower-silk.jpg",
-  sageGoldSilk: "/nehty/sage-gold-silk.jpg",
-  longNude: "/nehty/long-nude-nails.jpg",
-  pearlBlossom: "/nehty/pearl-blossom-hands.jpg",
-  nudeDetail2: "/nehty/nude-detail-2.jpg",
-  nudeDetail4: "/nehty/nude-detail-4.jpg",
+  floralArt: "/nehty/client/client-3.webp",
+  nudeMatteAlmond: "/nehty/client/client-4.webp",
+  velvetNude: "/nehty/client/client-1.webp",
+  goldFlowerSilk: "/nehty/client/client-5.webp",
+  sageGoldSilk: "/nehty/client/client-6.webp",
+  longNude: "/nehty/client/client-7.webp",
+  pearlBlossom: "/nehty/client/client-8.webp",
+  nudeDetail2: "/nehty/client/client-9.webp",
+  nudeDetail4: "/nehty/client/client-10.webp",
 } as const;
 
 export const NAIL_PHOTOS = {
@@ -51,11 +51,17 @@ export const SERVICE_PHOTO_FALLBACK = NAIL_PHOTOS.zpevneni;
 
 // Galerie ukázek prací — jen nehty, jemné tóny
 export const GALLERY_PHOTOS = [
-  { src: STUDIO_FOTO.floralArt, alt: "Modeláž se šalvějovým nail artem a 3D kvítky" },
-  { src: STUDIO_FOTO.goldFlowerSilk, alt: "Nude modeláž se zlatými plátky a kvítky" },
-  { src: STUDIO_FOTO.pearlBlossom, alt: "Jemná nude manikúra s perličkami" },
-  { src: STUDIO_FOTO.sageGoldSilk, alt: "Šalvějový akcent se zlatou fólií" },
+  { src: "/nehty/client/client-1.webp", alt: "Jemná nude modeláž s tmavým akcentem" },
+  { src: "/nehty/client/client-3.webp", alt: "Burgundy modeláž s drobným zdobením" },
+  { src: "/nehty/client/client-4.webp", alt: "Nude manikúra s jemnými kvítky" },
+  { src: "/nehty/client/client-5.webp", alt: "Pudrová manikúra s perleťovým detailem" },
+  { src: "/nehty/client/client-6.webp", alt: "Růžová manikúra s jemným zdobením" },
+  { src: "/nehty/client/client-7.webp", alt: "Pudrové nehty s výrazným detailem" },
+  { src: "/nehty/client/client-8.webp", alt: "Elegantní světlá manikúra" },
+  { src: "/nehty/client/client-10.webp", alt: "Přírodní růžová modeláž" },
 ] as const;
+
+export const PROMO_VIDEO = "/studio-m-promo-muted.mp4";
 
 // Vystřižené PNG segmenty od klientky (public/fotky) — jednotlivé nehty
 // s 3D květinovým zdobením, ideální pro plovoucí dekorace a kolekci.

@@ -10,6 +10,7 @@ import {
   Clock,
   Diamond,
   HeartHandshake,
+  Play,
   ShieldCheck,
   Sparkles as SparkIcon,
   Star,
@@ -40,6 +41,7 @@ import {
   NAIL_PHOTOS,
   SERVICE_PHOTOS,
   SERVICE_PHOTO_FALLBACK,
+  PROMO_VIDEO,
 } from "@/lib/photos";
 import type { Service } from "@/types";
 
@@ -470,6 +472,44 @@ export default function Home() {
                   </figcaption>
                 </figure>
               ))}
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ===== NENÁPADNÉ PROMO VIDEO ===== */}
+      <section className="px-3 pb-16 sm:px-5 sm:pb-20" aria-label="Ukázka práce">
+        <div className="mx-auto max-w-6xl">
+          <Reveal>
+            <div className="grid items-center gap-6 rounded-[24px] border border-[#EFDCD4] bg-[#F7E9E3] p-4 shadow-[0_24px_60px_-42px_rgba(74,59,52,0.45)] sm:grid-cols-[0.9fr_1.1fr] sm:p-5">
+              <div className="px-2 py-3 sm:px-4">
+                <p className="font-heading text-[10px] tracking-[0.32em] text-[#A98F84] uppercase">
+                  Studio M · krátká ukázka
+                </p>
+                <h2 className="mt-3 font-heading text-2xl tracking-[0.04em] text-[#5E4238] uppercase sm:text-3xl">
+                  Ukázka práce
+                </h2>
+                <p className="mt-3 max-w-md text-[0.95rem] leading-relaxed text-[#7D675E]">
+                  Detailní záběry našich modeláží a nail artu. Video se přehrává potichu,
+                  aby nerušilo prohlížení webu.
+                </p>
+                <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#D7B7A9] bg-white/60 px-4 py-2 text-[11px] tracking-[0.14em] text-[#8A6458] uppercase">
+                  <Play className="size-3.5 fill-current" aria-hidden />
+                  Studio M
+                </div>
+              </div>
+              <div className="overflow-hidden rounded-[18px] border border-[#EFDCD4] bg-[#EAD7CF]">
+                <video
+                  className="aspect-video size-full object-cover"
+                  src={PROMO_VIDEO}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  aria-label="Krátká ukázka práce Studia M"
+                />
+              </div>
             </div>
           </Reveal>
         </div>
