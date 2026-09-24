@@ -1,5 +1,5 @@
 // WeekPlanEditor — ruční plán týdnů pro administraci: majitelka u každého
-// týdne vybere provozovnu (technička je jedna a střídá se).
+// týdne vybere provozovnu (manikérka je jedna a střídá se).
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";

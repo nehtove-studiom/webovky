@@ -47,7 +47,7 @@ export default function SiteFooter() {
           <p className="mt-4 text-xs leading-relaxed text-[#8A7972]">
             Martina Holánková · IČO 63854023
             <span className="block">
-              Jedna technička, dvě provozovny — střídají se po týdnech.
+              Jedna manikérka, dvě provozovny — střídají se po týdnech.
             </span>
           </p>
         </div>

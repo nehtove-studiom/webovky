@@ -675,7 +675,7 @@ export default function Home() {
           <Reveal>
             <SectionTitle testId="locations-section-title">Kde nás najdete</SectionTitle>
             <p className="mx-auto mt-4 max-w-xl text-center text-[0.95rem] leading-relaxed text-[#8A7972]">
-              Pracuje u nás jedna technička, Martina — jeden týden v Krásné Lípě,
+              Pracuje u nás jedna manikérka, Martina — jeden týden v Krásné Lípě,
               druhý v Neratovicích. Aktuální týden je vždy zvýrazněný.
             </p>
           </Reveal>

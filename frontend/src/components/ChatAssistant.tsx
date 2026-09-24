@@ -21,7 +21,7 @@ interface Bubble {
 }
 
 const GREETING =
-  "Dobrý den, tady Klára ze Studia M ♥ Ráda vám najdu volný termín, řeknu ceny nebo poradím s designem nehtů. Co byste si přála?";
+  "Dobrý den, tady Stella ze Studia M ♥ Ráda vám najdu volný termín, řeknu ceny nebo poradím s designem nehtů. Co byste si přála?";
 
 const QUICK_PROMPTS = [
   { id: "volno-tyden", label: "Máte volno tento týden?" },
@@ -134,7 +134,7 @@ export default function ChatAssistant({
             </span>
             <span className="flex flex-col items-start leading-tight">
               <span className="font-heading text-[11px] tracking-[0.16em] text-[#6B4F45] uppercase">
-                Klára
+                Stella
               </span>
               <span className="text-[11px] text-[#7A5A4E]">poradí s termínem</span>
             </span>
@@ -182,7 +182,7 @@ export default function ChatAssistant({
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="font-heading text-base tracking-[0.1em] text-[#5E4238] uppercase">
-                      Klára
+                      Stella
                     </p>
                     <p className="flex items-center gap-1.5 text-[11px] text-[#7A5A4E]">
                       <span className="size-1.5 rounded-full bg-[#7E8C78]" aria-hidden />
@@ -273,7 +273,7 @@ export default function ChatAssistant({
                     </span>
                     <span className="flex items-center gap-2 pl-2 text-[11px] text-[#A98F84]">
                       <SparkIcon className="animate-gold-twinkle size-3 text-[#C79A7B]" aria-hidden />
-                      Klára píše — návrh nehtů může chvilku trvat…
+                      Stella píše — návrh nehtů může chvilku trvat…
                     </span>
                   </div>
                 )}
@@ -328,7 +328,7 @@ export default function ChatAssistant({
 
               <p className="flex items-center justify-center gap-1.5 bg-white/70 pb-3 text-[10px] text-[#A98F84]">
                 <SparkIcon className="size-3" aria-hidden />
-                Klára vidí skutečně volné termíny studia
+                      Stella vidí skutečně volné termíny studia
               </p>
             </motion.section>
           </>
