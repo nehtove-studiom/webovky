@@ -183,6 +183,11 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
                 Ceník se nepodařilo načíst. Obnovte prosím stránku nebo to zkuste za chvíli.
               </p>
             )}
+            {servicesQuery.isPending && (
+              <p className="mt-4 rounded-xl border border-[#EFDCD4] bg-[#FBF1EC] p-4 text-sm text-[#8A7972]" role="status">
+                Načítám nabídku služeb…
+              </p>
+            )}
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               {services.map((s) => {
                 const selected = serviceId === s.id;
