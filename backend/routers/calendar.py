@@ -14,6 +14,12 @@ router = APIRouter(tags=["calendar"])
 logger = logging.getLogger(__name__)
 
 
+def _frontend_redirect(status: str) -> str:
+    """Return users to the public site after OAuth instead of the API service."""
+    base = os.environ.get("FRONTEND_URL", "https://nailstudiom.com").rstrip("/")
+    return f"{base}/?calendar={status}"
+
+
 @router.get("/calendar/status", response_model=CalendarStatus)
 async def calendar_status() -> CalendarStatus:
     tokens = await gcalendar.get_owner_tokens()
@@ -40,15 +46,15 @@ async def oauth_login():
 @router.get("/oauth/calendar/callback")
 async def oauth_callback(code: str | None = None, error: str | None = None):
     if error:
-        return RedirectResponse("/admin?calendar=error", status_code=302)
+        return RedirectResponse(_frontend_redirect("error"), status_code=302)
     if not code:
-        return RedirectResponse("/admin?calendar=missing-code", status_code=302)
+        return RedirectResponse(_frontend_redirect("missing-code"), status_code=302)
     try:
         await gcalendar.exchange_and_store(code)
     except Exception:
         logger.exception("Výměna OAuth tokenu selhala")
-        return RedirectResponse("/admin?calendar=error", status_code=302)
-    return RedirectResponse("/admin?calendar=connected", status_code=302)
+        return RedirectResponse(_frontend_redirect("error"), status_code=302)
+    return RedirectResponse(_frontend_redirect("connected"), status_code=302)
 
 
 @router.post("/calendar/disconnect", response_model=CalendarStatus)
