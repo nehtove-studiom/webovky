@@ -8,12 +8,13 @@ ukládají do databáze a kalendářový krok se zobrazí jako čekající.
 
 import logging
 import os
+import secrets
+from urllib.parse import urlencode
 from datetime import datetime, timedelta, timezone
 
 import requests
 from google.auth.transport.requests import Request as GoogleRequest
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 
 from lib.db import db
@@ -60,11 +61,24 @@ def _client_config() -> dict:
 
 
 def authorization_url() -> str:
-    flow = Flow.from_client_config(
-        _client_config(), scopes=SCOPES, redirect_uri=redirect_uri()
-    )
-    url, _ = flow.authorization_url(access_type="offline", prompt="consent")
-    return url
+    """Vytvoří serverový OAuth odkaz bez neuložené PKCE výzvy.
+
+    Předchozí implementace nechala knihovnu automaticky přidat
+    ``code_challenge``, ale callback pak neposílal odpovídající
+    ``code_verifier``. Google proto po souhlasu vracel chybu 400.
+    Webový OAuth klient používá tajný klíč na serveru, takže zde použijeme
+    standardní authorization-code flow bez PKCE.
+    """
+    params = {
+        "response_type": "code",
+        "client_id": os.environ["GOOGLE_CLIENT_ID"],
+        "redirect_uri": redirect_uri(),
+        "scope": " ".join(SCOPES),
+        "state": secrets.token_urlsafe(24),
+        "access_type": "offline",
+        "prompt": "consent",
+    }
+    return "https://accounts.google.com/o/oauth2/auth?" + urlencode(params)
 
 
 async def get_owner_tokens() -> dict | None:
