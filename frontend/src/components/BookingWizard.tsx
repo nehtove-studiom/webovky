@@ -42,6 +42,7 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [wantRegister, setWantRegister] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [designSent, setDesignSent] = useState(false);
   const [designText, setDesignText] = useState("");
@@ -93,6 +94,7 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
         name,
         phone,
         email: email.trim() ? email.trim() : null,
+        register: wantRegister,
       }),
     onSuccess: (created) => {
       setBookingId(created.id);
@@ -350,6 +352,18 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
                 />
               </div>
             </div>
+            <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-[#EFDCD4] bg-[#FBF1EC] p-4 text-sm text-[#6B4F45]" data-testid="register-checkbox-label">
+              <input
+                type="checkbox"
+                checked={wantRegister}
+                onChange={(e) => setWantRegister(e.target.checked)}
+                className="mt-0.5 size-4 accent-[#C08272]"
+                data-testid="register-checkbox"
+              />
+              <span>
+                <span className="font-medium text-[#5E4238]">Zaregistrovat se</span> — příště už nebudete muset platit zálohu.
+              </span>
+            </label>
             <div className="mt-6 flex items-center justify-between">
               <Button variant="ghost" onClick={() => setStep(2)} data-testid="wizard-back-to-date-button">
                 Zpět na termín
@@ -389,6 +403,23 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
                 </div>
               </div>
             </div>
+
+            {booking && booking.service_id === "modelaz-nova" && !booking.is_registered && (
+              <div className="rounded-2xl border border-[#C79A7B]/40 bg-[#FBF1EC] p-5" data-testid="deposit-box">
+                <p className="font-heading text-lg text-[#5E4238]">Záloha 100 Kč</p>
+                <p className="mt-1 text-sm text-[#6B4F45]">
+                  U nové modeláže prosíme o zálohu 100 Kč na účet{" "}
+                  <span className="font-medium">3727286015/3030</span>. Naskenujte QR kód v bankovní aplikaci
+                  (zpráva: ZALOHA STUDIO M).
+                </p>
+                <img
+                  src="/platba/zaloha-100kc-qr.png"
+                  alt="QR kód pro zálohu 100 Kč"
+                  className="mt-3 size-44 rounded-xl border border-[#EFDCD4] bg-white p-2"
+                  data-testid="deposit-qr"
+                />
+              </div>
+            )}
 
             {booking && !pipelineRunning && booking.design_generation_count < 1 && (
               <div className="rounded-2xl border border-[#EFDCD4] bg-[#FAF3EE]/70 p-5" data-testid="design-description-form">

@@ -35,6 +35,8 @@ class BookingCreate(BaseModel):
     name: str = Field(min_length=2, max_length=120)
     phone: str = Field(min_length=6, max_length=40)
     email: Optional[str] = None
+    # true = klientka se zaregistrovala (záloha 100 Kč se jí neukazuje)
+    register: bool = False
 
 
 class DesignSubmit(BaseModel):
@@ -58,6 +60,7 @@ class Booking(BaseModel):
     name: str
     phone: str
     email: Optional[str] = None
+    is_registered: bool = False
     # Popis vysněného designu od zákaznice + prompt připravený agentem Claude
     design_description: Optional[str] = None
     design_prompt: Optional[str] = None

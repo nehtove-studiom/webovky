@@ -180,6 +180,10 @@ async def create_booking(input: BookingCreate) -> Booking:
         except Exception:
             logger.exception("Vytváření události v kalendáři selhalo — rezervace pokračuje")
 
+    from routers.clients import find_registered, register_client
+    if input.register:
+        await register_client(input.name, input.phone, input.email)
+    doc["is_registered"] = bool(input.register) or await find_registered(input.phone)
     await db.bookings.insert_one(doc)
     logger.info("Nová rezervace %s — %s %s %s", booking.id, input.date, input.time, input.name)
     return _booking_from_doc(doc)

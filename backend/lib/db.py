@@ -30,6 +30,9 @@ INDEXES: dict[str, list[IndexModel]] = {
     "calendar_tokens": [
         IndexModel([("profile", ASCENDING)], name="profile", unique=True),
     ],
+    "clients": [
+        IndexModel([("phone_norm", ASCENDING)], name="phone_norm", unique=True),
+    ],
     "chat_sessions": [
         IndexModel([("session_id", ASCENDING)], name="session_id", unique=True),
     ],

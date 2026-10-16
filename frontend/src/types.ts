@@ -75,6 +75,7 @@ export interface Booking {
   pipeline_error: string | null;
   event_id: string | null;
   calendar_synced: boolean;
+  is_registered: boolean;
   created_at: string;
   updated_at: string;
 }
