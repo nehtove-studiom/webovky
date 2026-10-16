@@ -1,0 +1,47 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - '--no-cache'
+      - '-t'
+      - >-
+        $_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
+      - backend
+      - '-f'
+      - backend/Dockerfile
+    id: Build
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - >-
+        $_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
+    id: Push
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    args:
+      - run
+      - services
+      - update
+      - $_SERVICE_NAME
+      - '--platform=managed'
+      - >-
+        --image=$_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
+      - >-
+        --labels=managed-by=gcp-cloud-build-deploy-cloud-run,commit-sha=$COMMIT_SHA,gcb-build-id=$BUILD_ID,gcb-trigger-id=$_TRIGGER_ID
+      - '--region=$_DEPLOY_REGION'
+      - '--quiet'
+    id: Deploy
+    entrypoint: gcloud
+images:
+  - >-
+    $_AR_HOSTNAME/$_AR_PROJECT_ID/$_AR_REPOSITORY/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
+options:
+  substitutionOption: ALLOW_LOOSE
+  logging: CLOUD_LOGGING_ONLY
+substitutions:
+  _AR_HOSTNAME: europe-west1-docker.pkg.dev
+  _AR_PROJECT_ID: gen-lang-client-0190655200
+  _AR_REPOSITORY: cloud-run-source-deploy
+  _DEPLOY_REGION: europe-west1
+  _PLATFORM: managed
+  _SERVICE_NAME: studio-m-api
+  _TRIGGER_ID: 51bdee15-0e10-4c31-b6e8-62c9a294281c
