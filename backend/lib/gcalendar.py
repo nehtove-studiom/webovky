@@ -168,41 +168,45 @@ def create_event_sync(tokens: dict, doc: dict) -> str | None:
     if doc.get("design_description"):
         description += f"\nPopis designu: {doc['design_description']}"
 
-    event = (
-        _service(tokens)
-        .events()
-        .insert(
-            calendarId=calendar_id(),
-            body={
-                "summary": f"Studio M — {doc['service_name']} · {doc['name']}",
-                "description": description,
-                "start": {
-                    "dateTime": start.strftime("%Y-%m-%dT%H:%M:%S"),
-                    "timeZone": TIMEZONE,
-                },
-                "end": {
-                    "dateTime": end.strftime("%Y-%m-%dT%H:%M:%S"),
-                    "timeZone": TIMEZONE,
-                },
-            },
-        )
-        .execute()
-    )
+    body = {
+        "summary": f"Studio M — {doc['service_name']} · {doc['name']}",
+        "description": description,
+        "start": {
+            "dateTime": start.strftime("%Y-%m-%dT%H:%M:%S"),
+            "timeZone": TIMEZONE,
+        },
+        "end": {
+            "dateTime": end.strftime("%Y-%m-%dT%H:%M:%S"),
+            "timeZone": TIMEZONE,
+        },
+    }
+    service = _service(tokens)
+    target_cal = calendar_id()
+    try:
+        event = service.events().insert(calendarId=target_cal, body=body).execute()
+    except Exception:
+        if target_cal == "primary":
+            raise
+        logger.warning("Sdílený kalendář %s není dostupný, zapisuji do primary", target_cal)
+        event = service.events().insert(calendarId="primary", body=body).execute()
     return event.get("id")
 
 
 def append_image_link_sync(tokens: dict, event_id: str, image_url: str) -> None:
     """Doplň odkaz na AI návrh designu do popisu existující události."""
     service = _service(tokens)
-    event = (
-        service.events().get(calendarId=calendar_id(), eventId=event_id).execute()
-    )
+    target_cal = calendar_id()
+    try:
+        event = service.events().get(calendarId=target_cal, eventId=event_id).execute()
+    except Exception:
+        target_cal = "primary"
+        event = service.events().get(calendarId=target_cal, eventId=event_id).execute()
     note = (
         f"\n\n🎨 AI návrh designu nehtů: {image_url}"
         "\n(Návrh vygenerovaný agenty Studio M — Claude + Execution Agent)"
     )
     event["description"] = (event.get("description") or "") + note
     service.events().update(
-        calendarId=calendar_id(), eventId=event_id, body=event
+        calendarId=target_cal, eventId=event_id, body=event
     ).execute()
     logger.info("Obrázek designu doplňen do události %s", event_id)
