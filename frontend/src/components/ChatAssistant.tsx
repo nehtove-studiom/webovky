@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import Sparkles from "@/components/Sparkles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { apiGet, apiPost } from "@/lib/api";
+import { apiGet, apiPost, apiUrl } from "@/lib/api";
 import type { AgentStatus, ChatReply, ChatRole } from "@/types";
 
 interface Bubble {
@@ -243,7 +243,7 @@ export default function ChatAssistant({
                           data-testid="chat-design-image"
                         >
                           <img
-                            src={bubble.imageUrl}
+                            src={apiUrl(bubble.imageUrl)}
                             alt="Vygenerovaný návrh vašich nehtů"
                             className="w-full rounded-xl"
                           />

@@ -2,10 +2,17 @@
 // posílá požadavky na samostatně nasazené API; adresu lze případně přepsat přes
 // VITE_API_URL.
 // Klíče nikdy nepatří do této proměnné — je veřejně dostupná v prohlížeči.
-const BASE = (
+export const BASE = (
   import.meta.env.VITE_API_URL ??
   (import.meta.env.DEV ? "/api" : "https://studio-m-api-787245810397.europe-west1.run.app/api")
 ).replace(/\/$/, "");
+
+export const apiUrl = (path: string) =>
+  path.startsWith("http")
+    ? path
+    : path.startsWith("/api/")
+      ? `${BASE}${path.slice(4)}`
+      : `${BASE}${path}`;
 
 // Fields are declared, not constructor parameter properties: tsconfig sets
 // erasableSyntaxOnly, which rejects `constructor(readonly status: number)`.

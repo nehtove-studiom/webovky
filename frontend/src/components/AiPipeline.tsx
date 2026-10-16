@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { CalendarCheck, Check, Image as ImageIcon, Loader2, Sparkles, TriangleAlert } from "lucide-react";
 import type { Booking } from "@/types";
+import { apiUrl } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -124,7 +125,7 @@ export function AiPipeline({ booking }: { booking: Booking }) {
       {booking.has_design_image && (
         <figure className="pt-1" data-testid="design-image-figure">
           <img
-            src={`/api/bookings/${booking.id}/design-image?v=${encodeURIComponent(booking.updated_at)}`}
+            src={apiUrl(`/bookings/${booking.id}/design-image?v=${encodeURIComponent(booking.updated_at)}`)}
             alt="AI návrh designu nehtů podle vašeho popisu"
             data-testid="design-image-preview"
             className="w-full rounded-2xl border border-[#EFDCD4] shadow-[0_18px_50px_-24px_rgba(28,25,23,0.35)]"

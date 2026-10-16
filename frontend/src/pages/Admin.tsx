@@ -6,7 +6,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowLeft, CalendarCheck2, CircleAlert, Eye } from "lucide-react";
-import { apiGet, apiPatch } from "@/lib/api";
+import { apiGet, apiPatch, apiUrl } from "@/lib/api";
 import type { Booking, BookingStatus, CalendarStatus } from "@/types";
 import { PIPELINE_LABELS, STATUS_LABELS, STATUS_ORDER, formatCzechDate } from "@/types";
 import WeekPlanEditor from "@/components/WeekPlanEditor";
@@ -112,7 +112,7 @@ export default function Admin() {
                 <Button
                   size="sm"
                   render={
-                    <a href="/api/oauth/calendar/login" data-testid="admin-connect-calendar-button" />
+                    <a href={apiUrl("/oauth/calendar/login")} data-testid="admin-connect-calendar-button" />
                   }
                 >
                   Připojit Google kalendář
@@ -263,7 +263,7 @@ export default function Admin() {
                             )}
                             {booking.has_design_image && (
                               <img
-                                src={`/api/bookings/${booking.id}/design-image?v=${encodeURIComponent(booking.updated_at)}`}
+                                src={apiUrl(`/bookings/${booking.id}/design-image?v=${encodeURIComponent(booking.updated_at)}`)}
                                 alt={`AI návrh designu nehtů — ${booking.name}`}
                                 className="w-full rounded-2xl border border-[#EFEAE4]"
                                 data-testid="admin-design-image"

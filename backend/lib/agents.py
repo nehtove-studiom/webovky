@@ -85,8 +85,13 @@ async def claude_prompt_agent(design_description: str, service_name: str) -> str
 def _gemini_nanobanana_sync(api_key: str, prompt: str) -> bytes:
     """Vlastní Gemini klíč — nano banana přes Gemini Developer API režim."""
     from google import genai
+    from google.genai import types
 
-    client = genai.Client(api_key=api_key)
+    referer = os.environ.get("FRONTEND_URL") or os.environ.get("APP_URL") or "https://nailstudiom.com"
+    client = genai.Client(
+        api_key=api_key,
+        http_options=types.HttpOptions(headers={"Referer": referer}),
+    )
     response = client.models.generate_content(
         model=IMAGE_MODEL_NANO_BANANA,
         contents=[prompt],
