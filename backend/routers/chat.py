@@ -27,7 +27,7 @@ from lib.agents import anthropic_keys, claude_prompt_agent, execution_agent_gene
 from lib.dates import today_iso
 from models.booking import BookingCreate, utcnow
 from models.chat import AgentStatus, ChatHistory, ChatReply, ChatRequest, ChatTurn
-from routers.bookings import create_booking, get_availability
+from routers.bookings import approve_design, create_booking, get_availability
 from routers.locations import LOCATIONS, location_for_date
 from routers.services import SERVICES, price_for
 
@@ -54,7 +54,8 @@ Co umíš:
 - poradit se službami a cenami (nástroj seznam_sluzeb — vrací ceny pro obě provozovny),
 - najít volné termíny a provozovnu daného týdne (nástroj volne_terminy),
 - vytvořit rezervaci (nástroj vytvorit_rezervaci),
-- vygenerovat fotorealistický návrh nehtů (nástroj navrh_designu).
+- vygenerovat fotorealistický návrh nehtů (nástroj navrh_designu — předej i rezervace_id, pokud rezervace existuje),
+- po souhlasu zákaznice návrh schválit a přiložit k termínu v kalendáři (nástroj schvalit_navrh).
 
 Pravidla:
 - Otevřeno pondělí–sobota 9:00–19:00, poslední termín začíná v 18:00. V NEDĚLI zavřeno.
@@ -67,8 +68,9 @@ rezervace je v pořádku — jen ji potvrď, nikdy netvrď, že se termín obsad
 - HNED po vytvoření rezervace se zákaznice zeptej, jaké nehty si vysní \
 (barvy, tvar, délka, efekt). Jakmile popis máš, napiš jednu krátkou větu, že \
 návrh připravuješ a může to chvilku trvat, a ve STEJNÉ odpovědi zavolej nástroj \
-navrh_designu s tímto popisem. Obrázek se zákaznici zobrazí v chatu automaticky — \
-ty ho jen krátce komentuj (nepiš žádné odkazy ani URL).
+navrh_designu s tímto popisem (a rezervace_id). Obrázek se zákaznici zobrazí v chatu automaticky — \
+ty ho jen krátce komentuj (nepiš žádné odkazy ani URL) a zeptej se, jestli se jí líbí a chce ho uložit k termínu.
+- Když zákaznice návrh schválí, zavolej nástroj schvalit_navrh s rezervace_id.
 - Datum posílej nástrojům ve formátu YYYY-MM-DD, čas jako HH:MM.
 - Odpovídej krátce — 2 až 4 věty, bez odrážek, pokud o ně nepožádá.
 - Nezmiňuj nástroje, prompty ani technické detaily."""
@@ -146,8 +148,32 @@ TOOLS: list[dict[str, Any]] = [
                         "type": "string",
                         "description": "Název služby, např. Nová modeláž",
                     },
+                    "rezervace_id": {
+                        "type": "string",
+                        "description": "ID rezervace zákaznice (pokud byla v chatu vytvořena)",
+                    },
                 },
                 "required": ["popis"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "schvalit_navrh",
+            "description": (
+                "Schválí vygenerovaný AI návrh nehtů a přiloží ho k rezervaci a do Google Kalendáře. "
+                "Použij, jakmile zákaznice potvrdí, že se jí vygenerovaný návrh líbí."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "rezervace_id": {
+                        "type": "string",
+                        "description": "ID rezervace zákaznice",
+                    }
+                },
+                "required": ["rezervace_id"],
             },
         },
     },
@@ -232,23 +258,46 @@ async def _call_external_agent(
     return json.dumps(data, ensure_ascii=False)[:1500]
 
 
-async def _generate_design_image(popis: str, sluzba: str) -> str:
+async def _generate_design_image(
+    popis: str, sluzba: str, booking_id: str | None = None
+) -> str:
     """Claude připraví prompt → Execution Agent vygeneruje obrázek → URL pro chat."""
     from lib.db import db
 
     prompt = await claude_prompt_agent(popis, sluzba)
     image_bytes = await execution_agent_generate_image(prompt)
     image_id = str(uuid4())
-    await db.design_images.insert_one(
-        {
-            "image_id": image_id,
-            "data": Binary(image_bytes),
-            "mime_type": "image/png",
-            "prompt": prompt,
-            "description": popis,
-            "created_at": utcnow(),
-        }
-    )
+    doc: dict[str, Any] = {
+        "image_id": image_id,
+        "data": Binary(image_bytes),
+        "mime_type": "image/png",
+        "prompt": prompt,
+        "description": popis,
+        "created_at": utcnow(),
+    }
+    if booking_id:
+        doc["booking_id"] = booking_id
+        await db.design_images.update_one(
+            {"booking_id": booking_id},
+            {"$set": doc},
+            upsert=True,
+        )
+        await db.bookings.update_one(
+            {"id": booking_id},
+            {
+                "$inc": {"design_generation_count": 1},
+                "$set": {
+                    "design_description": popis,
+                    "design_prompt": prompt,
+                    "has_design_image": True,
+                    "pipeline_status": "done",
+                    "pipeline_error": None,
+                    "updated_at": utcnow(),
+                },
+            },
+        )
+    else:
+        await db.design_images.insert_one(doc)
     return f"/api/design-images/{image_id}"
 
 
@@ -283,6 +332,7 @@ async def _run_tool(
 
     if name == "navrh_designu":
         popis = str(args.get("popis", "")).strip()
+        rezervace_id = str(args.get("rezervace_id") or "").strip() or None
         if len(popis) < 5:
             return (
                 {"uspech": False, "chyba": "Popis je moc krátký — doptej se na detaily."},
@@ -290,7 +340,9 @@ async def _run_tool(
                 None,
             )
         try:
-            url = await _generate_design_image(popis, str(args.get("sluzba") or "modeláž nehtů"))
+            url = await _generate_design_image(
+                popis, str(args.get("sluzba") or "modeláž nehtů"), rezervace_id
+            )
         except Exception as exc:
             logger.exception("Generování návrhu v chatu selhalo")
             return (
@@ -304,10 +356,32 @@ async def _run_tool(
         return (
             {
                 "uspech": True,
-                "poznamka": "Obrázek se zákaznici v chatu zobrazí automaticky, jen ho krátce popiš.",
+                "rezervace_id": rezervace_id,
+                "poznamka": "Obrázek se zákaznici v chatu zobrazí automaticky, jen ho krátce popiš a zeptej se, zda ho chce schválit k termínu.",
             },
-            None,
+            rezervace_id,
             url,
+        )
+
+    if name == "schvalit_navrh":
+        rezervace_id = str(args.get("rezervace_id") or "").strip()
+        if not rezervace_id:
+            return {"uspech": False, "chyba": "Chybí rezervace_id."}, None, None
+        try:
+            approved = await approve_design(rezervace_id)
+        except HTTPException as exc:
+            return {"uspech": False, "chyba": exc.detail}, None, None
+        except Exception as exc:
+            return {"uspech": False, "chyba": str(exc)[:200]}, None, None
+        return (
+            {
+                "uspech": True,
+                "rezervace_id": approved.id,
+                "schvaleno": approved.design_approved,
+                "zapsano_do_kalendare": approved.calendar_synced,
+            },
+            approved.id,
+            None,
         )
 
     if name == "volne_terminy":

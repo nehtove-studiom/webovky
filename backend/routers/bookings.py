@@ -56,7 +56,10 @@ def _parse_date(value: str):
 
 
 def _image_url(booking_id: str) -> str:
-    base = os.environ.get("APP_URL", "").rstrip("/")
+    base = os.environ.get(
+        "API_PUBLIC_URL",
+        "https://studio-m-api-787245810397.europe-west1.run.app",
+    ).rstrip("/")
     return f"{base}/api/bookings/{booking_id}/design-image"
 
 

@@ -390,7 +390,7 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
               </div>
             </div>
 
-            {SHOW_NAIL_GAME && booking && !pipelineRunning && booking.design_generation_count < 3 && (
+            {booking && !pipelineRunning && booking.design_generation_count < 3 && (
               <div className="rounded-2xl border border-[#EFDCD4] bg-[#FAF3EE]/70 p-5" data-testid="design-description-form">
                 <p className="flex items-center gap-2 font-heading text-lg text-[#5E4238]">
                   <Sparkles className="size-4 text-[#C08272]" aria-hidden />
@@ -408,7 +408,7 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
                   className="mt-3 bg-white"
                   data-testid="booking-ai-design-description-input"
                 />
-                <NailDesignStudio onDescriptionChange={(value) => setDesignText(value)} />
+                {SHOW_NAIL_GAME && <NailDesignStudio onDescriptionChange={(value) => setDesignText(value)} />}
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {[
                     ["Tvar", designShape, setDesignShape, ["mandlový", "oválný", "square", "stiletto"]],

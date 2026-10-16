@@ -18,6 +18,8 @@ interface Bubble {
   role: ChatRole;
   content: string;
   imageUrl?: string | null;
+  bookingId?: string | null;
+  approved?: boolean;
 }
 
 const GREETING =
@@ -42,6 +44,7 @@ export default function ChatAssistant({
 }) {
   const queryClient = useQueryClient();
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [lastBookingId, setLastBookingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [bubbles, setBubbles] = useState<Bubble[]>([
     { id: nextId(), role: "assistant", content: GREETING },
@@ -60,9 +63,17 @@ export default function ChatAssistant({
       apiPost<ChatReply>("/chat", { message, session_id: sessionId }),
     onSuccess: (data) => {
       setSessionId(data.session_id);
+      const activeBookingId = data.booking_id ?? lastBookingId;
+      if (data.booking_id) setLastBookingId(data.booking_id);
       setBubbles((prev) => [
         ...prev,
-        { id: nextId(), role: "assistant", content: data.reply, imageUrl: data.image_url },
+        {
+          id: nextId(),
+          role: "assistant",
+          content: data.reply,
+          imageUrl: data.image_url,
+          bookingId: data.image_url ? activeBookingId : null,
+        },
       ]);
       if (data.booking_id) {
         toast.success("Rezervace vytvořena! Najdete ji i v přehledu studia.");
@@ -248,8 +259,36 @@ export default function ChatAssistant({
                             className="w-full rounded-xl"
                           />
                           <Sparkles count={8} seed={4} color="#C79A7B" />
-                          <figcaption className="px-2 py-1.5 text-[10px] tracking-[0.14em] text-[#A98F84] uppercase">
-                            Váš návrh od Kláry
+                          <figcaption className="flex items-center justify-between gap-2 px-2 py-1.5 text-[10px] tracking-[0.14em] text-[#A98F84] uppercase">
+                            <span>Váš návrh od Stelly</span>
+                            {bubble.bookingId && !bubble.approved && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const bid = bubble.bookingId!;
+                                  void apiPost(`/bookings/${bid}/approve-design`, {})
+                                    .then(() => {
+                                      setBubbles((prev) =>
+                                        prev.map((b) =>
+                                          b.id === bubble.id ? { ...b, approved: true } : b
+                                        )
+                                      );
+                                      toast.success("Návrh byl přiložen k vašemu termínu v kalendáři!");
+                                      void queryClient.invalidateQueries({ queryKey: ["bookings"] });
+                                    })
+                                    .catch(() => {
+                                      toast.error("Návrh se nepodařilo uložit ke kalendáři.");
+                                    });
+                                }}
+                                data-testid="chat-approve-design-button"
+                                className="rounded-full bg-[#7E8C78] px-2.5 py-1 text-[10px] font-medium tracking-wider text-white transition-colors hover:bg-[#6D7B67]"
+                              >
+                                Schválit k termínu
+                              </button>
+                            )}
+                            {bubble.approved && (
+                              <span className="font-medium text-[#7E8C78]">✓ Uloženo v kalendáři</span>
+                            )}
                           </figcaption>
                         </figure>
                       )}
