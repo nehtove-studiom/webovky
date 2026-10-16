@@ -341,6 +341,11 @@ async def _run_tool(
         rezervace_id = (
             str(args.get("rezervace_id") or "").strip() or session_booking_id
         )
+        if rezervace_id:
+            from lib.db import db as _db
+            _existing = await _db.bookings.find_one({"id": rezervace_id})
+            if _existing and int(_existing.get("design_generation_count", 0)) >= 1:
+                return ({"uspech": False, "chyba": "K této rezervaci už byl návrh vytvořen; je povolen jen jeden."}, None, None)
         if len(popis) < 5:
             return (
                 {"uspech": False, "chyba": "Popis je moc krátký — doptej se na detaily."},

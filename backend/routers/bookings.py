@@ -276,7 +276,7 @@ async def submit_design(booking_id: str, input: DesignSubmit) -> Booking:
             "status": {"$ne": "zrusena"},
             "pipeline_status": {"$nin": list(PROCESSING_STATES)},
             "$or": [
-                {"design_generation_count": {"$lt": 3}},
+                {"design_generation_count": {"$lt": 1}},
                 {"design_generation_count": {"$exists": False}},
             ],
         },
@@ -296,8 +296,8 @@ async def submit_design(booking_id: str, input: DesignSubmit) -> Booking:
         current = await db.bookings.find_one({"id": booking_id})
         if current and current.get("status") == "zrusena":
             raise HTTPException(status_code=409, detail="Ke zrušené rezervaci nelze vytvářet návrhy.")
-        if current and int(current.get("design_generation_count", 0)) >= 3:
-            raise HTTPException(status_code=429, detail="K této rezervaci už byly využity všechny 3 návrhy.")
+        if current and int(current.get("design_generation_count", 0)) >= 1:
+            raise HTTPException(status_code=429, detail="K této rezervaci už byl vytvořen návrh. Je možný jen jeden.")
         raise HTTPException(status_code=409, detail="Návrh designu už se právě zpracovává.")
     # Pipeline běží na pozadí — frontend polluje GET /bookings/{id}
     asyncio.create_task(run_design_pipeline(booking_id))

@@ -390,7 +390,7 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
               </div>
             </div>
 
-            {booking && !pipelineRunning && booking.design_generation_count < 3 && (
+            {booking && !pipelineRunning && booking.design_generation_count < 1 && (
               <div className="rounded-2xl border border-[#EFDCD4] bg-[#FAF3EE]/70 p-5" data-testid="design-description-form">
                 <p className="flex items-center gap-2 font-heading text-lg text-[#5E4238]">
                   <Sparkles className="size-4 text-[#C08272]" aria-hidden />
@@ -435,7 +435,7 @@ export default function BookingWizard({ autoServiceId }: { autoServiceId: string
 
             {showPipeline && booking && <AiPipeline booking={booking} />}
 
-            {booking && !pipelineRunning && booking.design_generation_count >= 3 && (
+            {booking && !pipelineRunning && booking.design_generation_count >= 1 && (
               <p className="rounded-2xl bg-[#F8EAE3] p-4 text-sm text-[#6B4F45]" data-testid="design-limit-reached-note">
                 Pro tento termín jste už využila všechny 3 návrhy. Vybraný návrh zůstává uložený u rezervace.
               </p>
