@@ -2,8 +2,10 @@
 // kulaté logo, akvarelové menu karty, ceník s fotkami a drobnými tlačítky
 // „PODROBNĚJI“. Ponechány jemné animace (aurora, běžící pás, nájezdy).
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { motion } from "motion/react";
 import {
   ArrowRight,
@@ -149,8 +151,19 @@ function SectionTitle({ children, testId }: { children: string; testId?: string 
 }
 
 export default function Home() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [autoServiceId, setAutoServiceId] = useState<string | null>(null);
   const [chatOpen, setChatOpen] = useState(false);
+
+  useEffect(() => {
+    const result = searchParams.get("calendar");
+    if (!result) return;
+    if (result === "connected") toast.success("Google kalendář byl úspěšně připojen.");
+    if (result === "error") toast.error("Připojení kalendáře se nepodařilo. Zkuste to prosím znovu.");
+    setSearchParams({}, { replace: true });
+    navigate("/admin", { replace: true });
+  }, [searchParams, setSearchParams, navigate]);
   const [shape, setShape] = useState<NailShape>("mandle");
   const [finish, setFinish] = useState<NailFinish>("glazed");
   const [length, setLength] = useState<1 | 2 | 3>(2);

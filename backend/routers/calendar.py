@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 def _frontend_redirect(status: str) -> str:
     """Return users to the public site after OAuth instead of the API service."""
     base = os.environ.get("FRONTEND_URL", "https://nailstudiom.com").rstrip("/")
-    return f"{base}/admin?calendar={status}"
+    return f"{base}/?calendar={status}"
 
 
 @router.get("/calendar/status", response_model=CalendarStatus)
