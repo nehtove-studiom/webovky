@@ -170,10 +170,10 @@ TOOLS: list[dict[str, Any]] = [
                 "properties": {
                     "rezervace_id": {
                         "type": "string",
-                        "description": "ID rezervace zákaznice",
+                        "description": "ID rezervace zákaznice (nepovinné, doplní se automaticky z konverzace)",
                     }
                 },
-                "required": ["rezervace_id"],
+                "required": [],
             },
         },
     },
@@ -201,23 +201,29 @@ async def chat_status() -> AgentStatus:
     )
 
 
-async def _load_history(session_id: str) -> list[ChatTurn]:
+async def _load_history(session_id: str) -> tuple[list[ChatTurn], str | None]:
     from lib.db import db
 
     doc = await db.chat_sessions.find_one({"session_id": session_id})
     if not doc:
-        return []
-    return [ChatTurn(**t) for t in doc.get("turns", [])][-HISTORY_LIMIT:]
+        return [], None
+    turns = [ChatTurn(**t) for t in doc.get("turns", [])][-HISTORY_LIMIT:]
+    return turns, doc.get("booking_id")
 
 
-async def _save_turns(session_id: str, turns: list[ChatTurn]) -> None:
+async def _save_turns(
+    session_id: str, turns: list[ChatTurn], booking_id: str | None = None
+) -> None:
     from lib.db import db
 
+    update_set: dict[str, Any] = {"session_id": session_id, "updated_at": utcnow()}
+    if booking_id:
+        update_set["booking_id"] = booking_id
     await db.chat_sessions.update_one(
         {"session_id": session_id},
         {
             "$push": {"turns": {"$each": [t.model_dump() for t in turns]}},
-            "$set": {"session_id": session_id, "updated_at": utcnow()},
+            "$set": update_set,
         },
         upsert=True,
     )
@@ -302,7 +308,7 @@ async def _generate_design_image(
 
 
 async def _run_tool(
-    name: str, args: dict[str, Any]
+    name: str, args: dict[str, Any], session_booking_id: str | None = None
 ) -> tuple[dict[str, Any], str | None, str | None]:
     """Vykoná nástroj asistentky. Vrací (výsledek pro model, id rezervace, url obrázku)."""
     if name == "seznam_sluzeb":
@@ -332,7 +338,9 @@ async def _run_tool(
 
     if name == "navrh_designu":
         popis = str(args.get("popis", "")).strip()
-        rezervace_id = str(args.get("rezervace_id") or "").strip() or None
+        rezervace_id = (
+            str(args.get("rezervace_id") or "").strip() or session_booking_id
+        )
         if len(popis) < 5:
             return (
                 {"uspech": False, "chyba": "Popis je moc krátký — doptej se na detaily."},
@@ -364,7 +372,9 @@ async def _run_tool(
         )
 
     if name == "schvalit_navrh":
-        rezervace_id = str(args.get("rezervace_id") or "").strip()
+        rezervace_id = (
+            str(args.get("rezervace_id") or "").strip() or session_booking_id
+        )
         if not rezervace_id:
             return {"uspech": False, "chyba": "Chybí rezervace_id."}, None, None
         try:
@@ -476,17 +486,25 @@ async def _run_tool(
 
 
 async def _run_claude_assistant(
-    session_id: str, message: str, history: list[ChatTurn]
+    session_id: str,
+    message: str,
+    history: list[ChatTurn],
+    session_booking_id: str | None = None,
 ) -> tuple[str, str | None, list[str], str | None]:
+    booking_ctx = (
+        f" Aktuální rezervace zákaznice v této konverzaci má rezervace_id={session_booking_id}."
+        if session_booking_id
+        else ""
+    )
     system = (
         f"{SYSTEM_PROMPT}\n\nDnešní datum je {today_iso()} "
-        "(časová zóna Europe/Prague)."
+        f"(časová zóna Europe/Prague).{booking_ctx}"
     )
     keys = anthropic_keys()
     last_error: Exception | None = None
 
     for index, api_key in enumerate(keys):
-        booking_id: str | None = None
+        booking_id: str | None = session_booking_id
         image_url: str | None = None
         actions: list[str] = []
         try:
@@ -509,7 +527,7 @@ async def _run_claude_assistant(
                 tool_results: list[dict[str, Any]] = []
                 for call in tool_uses:
                     result, created_id, created_image = await _run_tool(
-                        call.name, call.input or {}
+                        call.name, call.input or {}, booking_id
                     )
                     if created_id:
                         booking_id = created_id
@@ -564,10 +582,10 @@ async def _run_claude_assistant(
 @router.post("/chat", response_model=ChatReply)
 async def chat(input: ChatRequest) -> ChatReply:
     session_id = input.session_id or str(uuid4())
-    history = await _load_history(session_id)
+    history, session_booking_id = await _load_history(session_id)
     message = input.message.strip()
 
-    booking_id: str | None = None
+    booking_id: str | None = session_booking_id
     actions: list[str] = []
     image_url: str | None = None
 
@@ -578,13 +596,13 @@ async def chat(input: ChatRequest) -> ChatReply:
         except Exception:
             logger.exception("Externí agent selhal — použiji vestavěnou asistentku")
             reply, booking_id, actions, image_url = await _run_claude_assistant(
-                session_id, message, history
+                session_id, message, history, session_booking_id
             )
             source = "claude"
     else:
         try:
             reply, booking_id, actions, image_url = await _run_claude_assistant(
-                session_id, message, history
+                session_id, message, history, session_booking_id
             )
         except Exception:
             logger.exception("Asistentka selhala")
@@ -597,6 +615,7 @@ async def chat(input: ChatRequest) -> ChatReply:
     await _save_turns(
         session_id,
         [ChatTurn(role="user", content=message), ChatTurn(role="assistant", content=reply)],
+        booking_id,
     )
     return ChatReply(
         session_id=session_id,
@@ -610,4 +629,5 @@ async def chat(input: ChatRequest) -> ChatReply:
 
 @router.get("/chat/{session_id}", response_model=ChatHistory)
 async def chat_history(session_id: str) -> ChatHistory:
-    return ChatHistory(session_id=session_id, turns=await _load_history(session_id))
+    turns, _ = await _load_history(session_id)
+    return ChatHistory(session_id=session_id, turns=turns)
