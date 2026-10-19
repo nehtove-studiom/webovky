@@ -89,20 +89,48 @@ async def get_availability(date: str) -> Availability:
             location_name=loc_name,
         )
 
+    # Nacteni z kalendare
+    busy_intervals = []
+    if await gcalendar.is_connected():
+        try:
+            tokens = await gcalendar.get_owner_tokens()
+            start_dt = datetime(day.year, day.month, day.day, 0, 0, tzinfo=TZ)
+            end_dt = start_dt + timedelta(days=1)
+            # Volání blokující API ve vlákně
+            busy_intervals = await asyncio.to_thread(gcalendar.get_free_busy, tokens, start_dt, end_dt)
+        except Exception as e:
+            logger.warning("Nepodařilo se načíst free_busy z kalendáře: %s", e)
+
     slots: list[Slot] = []
     now = datetime.now(TZ)
     for hour in range(OPEN_HOUR, CLOSE_HOUR):
         time = f"{hour:02d}:00"
+        
+        # Zkontrolujeme databázi
         taken = (
             await db.bookings.find_one(
                 {"date": date, "time": time, "status": {"$ne": "zrusena"}}
             )
             is not None
         )
-        past = datetime(
-            day.year, day.month, day.day, hour, 0, tzinfo=TZ
-        ) <= now
-        slots.append(Slot(time=time, available=not taken and not past))
+        
+        slot_dt = datetime(day.year, day.month, day.day, hour, 0, tzinfo=TZ)
+        slot_end_dt = slot_dt + timedelta(hours=1)
+        
+        # Zkontrolujeme free/busy kalendare
+        cal_taken = False
+        for interval in busy_intervals:
+            # interval = {'start': '2026-04-09T10:00:00+02:00', 'end': '2026-04-09T11:00:00+02:00'}
+            # parse ty ruzne zony
+            b_start = datetime.fromisoformat(interval['start'].replace('Z', '+00:00'))
+            b_end = datetime.fromisoformat(interval['end'].replace('Z', '+00:00'))
+            # Prunik intervalu
+            if max(slot_dt, b_start) < min(slot_end_dt, b_end):
+                cal_taken = True
+                break
+
+        past = slot_dt <= now
+        slots.append(Slot(time=time, available=not taken and not past and not cal_taken))
     return Availability(
         date=date,
         closed=False,
@@ -110,7 +138,6 @@ async def get_availability(date: str) -> Availability:
         location_id=loc_id,
         location_name=loc_name,
     )
-
 
 @router.post("/bookings", response_model=Booking)
 async def create_booking(input: BookingCreate) -> Booking:

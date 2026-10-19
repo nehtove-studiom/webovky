@@ -150,3 +150,39 @@ async def set_week(iso_week: str, input: WeekPlanUpdate) -> WeekPlanItem:
     )
     doc = await db.location_weeks.find_one({"iso_week": iso_week})
     return _item(doc or {}, iso_week_of(monday_of(today())))
+
+from pydantic import BaseModel
+class CalendarLocationRange(BaseModel):
+    message: str | None = None
+
+
+
+@router.get("/locations/calendar-message", response_model=CalendarLocationRange)
+async def calendar_location_message() -> CalendarLocationRange:
+    from lib import gcalendar
+    import asyncio
+    
+    if not await gcalendar.is_connected():
+        return CalendarLocationRange(message=None)
+    
+    tokens = await gcalendar.get_owner_tokens()
+    start_dt = datetime.now(TZ)
+    end_dt = start_dt + timedelta(days=60)
+    
+    locations = await asyncio.to_thread(gcalendar.get_location_events, tokens, start_dt, end_dt)
+    if not locations:
+        return CalendarLocationRange(message=None)
+    
+    first = locations[0]
+    
+    s_dt = datetime.fromisoformat(first['start'].replace('Z', '+00:00'))
+    s_date = s_dt.strftime('%d.%m.%Y')
+    
+    e_dt = datetime.fromisoformat(first['end'].replace('Z', '+00:00'))
+    if 'T' not in first['end']:
+        e_dt = e_dt - timedelta(days=1)
+    
+    e_date = e_dt.strftime('%d.%m.%Y')
+    
+    msg = f"Od {s_date} do {e_date} je v {first['name']}"
+    return CalendarLocationRange(message=msg)

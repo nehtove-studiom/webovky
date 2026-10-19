@@ -27,7 +27,7 @@ TIMEZONE = "Europe/Prague"
 
 def calendar_id() -> str:
     """ID sdíleného firemního kalendáře; lokálně lze ponechat primary."""
-    return os.environ.get("GOOGLE_CALENDAR_ID", "primary")
+    return "Martikiii@gmail.com"
 
 
 def is_configured() -> bool:
@@ -210,3 +210,60 @@ def append_image_link_sync(tokens: dict, event_id: str, image_url: str) -> None:
         calendarId=target_cal, eventId=event_id, body=event
     ).execute()
     logger.info("Obrázek designu doplňen do události %s", event_id)
+
+def get_free_busy(tokens: dict, start_dt: datetime, end_dt: datetime) -> list[dict]:
+    service = _service(tokens)
+    target_cal = calendar_id()
+    body = {
+        "timeMin": start_dt.isoformat(),
+        "timeMax": end_dt.isoformat(),
+        "timeZone": TIMEZONE,
+        "items": [{"id": target_cal}]
+    }
+    try:
+        eventsResult = service.freebusy().query(body=body).execute()
+        calendars = eventsResult.get("calendars", {})
+        cal_data = calendars.get(target_cal, {})
+        return cal_data.get("busy", [])
+    except Exception as e:
+        logger.warning("Chyba při čtení freebusy z %s: %s", target_cal, e)
+        return []
+
+
+def get_location_events(tokens: dict, start_dt: datetime, end_dt: datetime) -> list[dict]:
+    service = _service(tokens)
+    target_cal = calendar_id()
+    try:
+        events_result = service.events().list(
+            calendarId=target_cal,
+            timeMin=start_dt.isoformat(),
+            timeMax=end_dt.isoformat(),
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
+        events = events_result.get('items', [])
+        locations = []
+        for event in events:
+            summary = event.get('summary', '').lower()
+            loc_id = None
+            loc_name = None
+            if 'neratovic' in summary:
+                loc_id = 'neratovice'
+                loc_name = 'Neratovicích'
+            elif 'líp' in summary or 'lipa' in summary:
+                loc_id = 'krasna-lipa'
+                loc_name = 'Lípě'
+            
+            if loc_id:
+                start_str = event['start'].get('dateTime', event['start'].get('date'))
+                end_str = event['end'].get('dateTime', event['end'].get('date'))
+                locations.append({
+                    'id': loc_id,
+                    'name': loc_name,
+                    'start': start_str,
+                    'end': end_str
+                })
+        return locations
+    except Exception as e:
+        logger.warning("Chyba při čtení událostí z %s: %s", target_cal, e)
+        return []

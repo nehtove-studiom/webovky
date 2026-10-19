@@ -60,6 +60,12 @@ export function CurrentWeekBanner() {
     queryFn: () => apiGet<CurrentLocation>("/locations/current"),
   });
   const current = currentQuery.data ?? null;
+  
+  const calMsgQuery = useQuery({
+    queryKey: ["calendar-message"],
+    queryFn: () => apiGet<{message: string | null}>("/locations/calendar-message"),
+  });
+  const calMsg = calMsgQuery.data?.message;
 
   return (
     <div
@@ -70,20 +76,20 @@ export function CurrentWeekBanner() {
       <div className="relative flex flex-wrap items-center gap-x-6 gap-y-2">
         <span className="flex items-center gap-2 text-[10px] tracking-[0.24em] text-[#A98F84] uppercase">
           <CalendarClock className="size-3.5 text-[#C08272]" aria-hidden />
-          Tento týden pracujeme v
+          Aktuální rozvrh
         </span>
         <span
           className="gold-text font-heading text-[1.35rem] tracking-[0.1em] uppercase"
           data-testid="current-week-location-name"
         >
-          {current?.location?.name ?? "—"}
+          {calMsg ? calMsg : (current?.location ? `Tento týden pracujeme v ${current.location.name}` : "—")}
         </span>
-        {current?.location && (
+        {!calMsg && current?.location && (
           <span className="text-sm text-[#6B4F45]">
             {current.location.address}, {current.location.city}
           </span>
         )}
-        {current && (
+        {!calMsg && current && (
           <span className="ml-auto text-[11px] text-[#A98F84]">
             {formatCzechDate(current.monday)} – {formatCzechDate(current.sunday)}
           </span>
