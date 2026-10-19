@@ -27,7 +27,7 @@ TIMEZONE = "Europe/Prague"
 
 def calendar_id() -> str:
     """ID sdíleného firemního kalendáře; lokálně lze ponechat primary."""
-    return "Martikiii@gmail.com"
+    return os.environ.get("GOOGLE_CALENDAR_ID") or "primary"
 
 
 def is_configured() -> bool:
