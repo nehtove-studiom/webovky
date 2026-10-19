@@ -212,28 +212,28 @@ def append_image_link_sync(tokens: dict, event_id: str, image_url: str) -> None:
     logger.info("Obrázek designu doplňen do události %s", event_id)
 
 def get_free_busy(tokens: dict, start_dt: datetime, end_dt: datetime) -> list[dict]:
-    service = _service(tokens)
-    target_cal = calendar_id()
-    body = {
-        "timeMin": start_dt.isoformat(),
-        "timeMax": end_dt.isoformat(),
-        "timeZone": TIMEZONE,
-        "items": [{"id": target_cal}]
-    }
     try:
+        service = _service(tokens)
+        target_cal = calendar_id()
+        body = {
+            "timeMin": start_dt.isoformat(),
+            "timeMax": end_dt.isoformat(),
+            "timeZone": TIMEZONE,
+            "items": [{"id": target_cal}]
+        }
         eventsResult = service.freebusy().query(body=body).execute()
         calendars = eventsResult.get("calendars", {})
         cal_data = calendars.get(target_cal, {})
         return cal_data.get("busy", [])
     except Exception as e:
-        logger.warning("Chyba při čtení freebusy z %s: %s", target_cal, e)
+        logger.warning("Chyba při čtení freebusy: %s", e)
         return []
 
 
 def get_location_events(tokens: dict, start_dt: datetime, end_dt: datetime) -> list[dict]:
-    service = _service(tokens)
-    target_cal = calendar_id()
     try:
+        service = _service(tokens)
+        target_cal = calendar_id()
         events_result = service.events().list(
             calendarId=target_cal,
             timeMin=start_dt.isoformat(),
@@ -265,5 +265,5 @@ def get_location_events(tokens: dict, start_dt: datetime, end_dt: datetime) -> l
                 })
         return locations
     except Exception as e:
-        logger.warning("Chyba při čtení událostí z %s: %s", target_cal, e)
+        logger.warning("Chyba při čtení událostí: %s", e)
         return []
