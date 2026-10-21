@@ -39,7 +39,7 @@ CLAUDE_MODEL = "claude-sonnet-4-5-20250929"
 MAX_TOOL_ROUNDS = 6
 HISTORY_LIMIT = 24
 
-SYSTEM_PROMPT = """Jsi Klára, milá a profesionální asistentka nehtového studia \
+SYSTEM_PROMPT = """Jsi Stella, milá a profesionální asistentka nehtového studia \
 Studio M (technička Martina Holánková). Píšeš VÝHRADNĚ česky, vřele, stručně a \
 lidsky, zákaznicím vykáš.
 
@@ -405,6 +405,9 @@ async def _run_tool(
             availability = await get_availability(datum)
         except HTTPException as exc:
             return {"chyba": exc.detail}, None, None
+        except Exception as exc:
+            logger.exception("Chyba při načítání volných termínů pro %s", datum)
+            return {"chyba": f"Nepodařilo se ověřit volné termíny: {exc}"[:200]}, None, None
         return (
             {
                 "datum": availability.date,

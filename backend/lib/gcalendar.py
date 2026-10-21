@@ -23,11 +23,12 @@ logger = logging.getLogger(__name__)
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 TIMEZONE = "Europe/Prague"
+DEFAULT_CALENDAR_ID = "martikiii@gmail.com"
 
 
 def calendar_id() -> str:
-    """ID sdíleného firemního kalendáře; lokálně lze ponechat primary."""
-    return os.environ.get("GOOGLE_CALENDAR_ID") or "primary"
+    """ID sdíleného firemního kalendáře; výchozí je martikiii@gmail.com."""
+    return (os.environ.get("GOOGLE_CALENDAR_ID") or DEFAULT_CALENDAR_ID).strip()
 
 
 def is_configured() -> bool:
@@ -211,20 +212,111 @@ def append_image_link_sync(tokens: dict, event_id: str, image_url: str) -> None:
     ).execute()
     logger.info("Obrázek designu doplňen do události %s", event_id)
 
+def _is_location_marker_event(event: dict) -> bool:
+    """Celodenní/vícetýdenní událost typu 'Neratovice' nebo 'Krásná Lípa' určuje provozovnu, ne obsazený slot."""
+    summary = (event.get("summary") or "").strip().lower()
+    if not ("neratovic" in summary or "líp" in summary or "lipa" in summary):
+        return False
+    start = event.get("start") or {}
+    # Pokud je to celodenní událost (má 'date' místo 'dateTime'), jde o označení provozovny
+    return "date" in start and "dateTime" not in start
+
+
+def inspect_calendar_connection(tokens: dict) -> dict:
+    """Zjistí e-mail připojeného OAuth účtu a zda má přístup k cílovému kalendáři (martikiii@gmail.com)."""
+    target_cal = calendar_id()
+    result = {
+        "email": tokens.get("email"),
+        "target_calendar": target_cal,
+        "target_accessible": False,
+        "active_calendar": None,
+    }
+    try:
+        service = _service(tokens)
+        if not result["email"]:
+            try:
+                primary_meta = service.calendars().get(calendarId="primary").execute()
+                result["email"] = primary_meta.get("id")
+            except Exception as e:
+                logger.warning("Nepodařilo se zjistit primary calendar ID: %s", e)
+
+        # Ověření přístupu k target_cal
+        try:
+            service.calendars().get(calendarId=target_cal).execute()
+            result["target_accessible"] = True
+            result["active_calendar"] = target_cal
+        except Exception:
+            # Zkusíme ještě freebusy dotaz (pro případ sdílení pouze volno/obsazeno)
+            now = datetime.now(timezone.utc)
+            fb = service.freebusy().query(
+                body={
+                    "timeMin": now.isoformat(),
+                    "timeMax": (now + timedelta(hours=1)).isoformat(),
+                    "timeZone": TIMEZONE,
+                    "items": [{"id": target_cal}],
+                }
+            ).execute()
+            cals = fb.get("calendars", {})
+            cal_data = cals.get(target_cal) or cals.get(target_cal.lower()) or {}
+            if cal_data and not cal_data.get("errors"):
+                result["target_accessible"] = True
+                result["active_calendar"] = target_cal
+            else:
+                result["target_accessible"] = False
+                result["active_calendar"] = result["email"] or "primary"
+    except Exception as e:
+        logger.warning("Chyba při kontrole stavu kalendáře: %s", e)
+    return result
+
+
 def get_free_busy(tokens: dict, start_dt: datetime, end_dt: datetime) -> list[dict]:
     try:
         service = _service(tokens)
         target_cal = calendar_id()
-        body = {
-            "timeMin": start_dt.isoformat(),
-            "timeMax": end_dt.isoformat(),
-            "timeZone": TIMEZONE,
-            "items": [{"id": target_cal}]
-        }
-        eventsResult = service.freebusy().query(body=body).execute()
-        calendars = eventsResult.get("calendars", {})
-        cal_data = calendars.get(target_cal, {})
-        return cal_data.get("busy", [])
+
+        # 1) Zkusíme načíst události přímo z cílového kalendáře (umožní odfiltrovat celodenní označení provozovny)
+        for cal_id in ([target_cal, "primary"] if target_cal != "primary" else ["primary"]):
+            try:
+                events_result = service.events().list(
+                    calendarId=cal_id,
+                    timeMin=start_dt.isoformat(),
+                    timeMax=end_dt.isoformat(),
+                    singleEvents=True,
+                    orderBy="startTime",
+                ).execute()
+                busy: list[dict] = []
+                for event in events_result.get("items", []):
+                    if event.get("status") == "cancelled":
+                        continue
+                    if event.get("transparency") == "transparent":
+                        continue
+                    if _is_location_marker_event(event):
+                        continue
+                    start_val = (event.get("start") or {}).get("dateTime") or (event.get("start") or {}).get("date")
+                    end_val = (event.get("end") or {}).get("dateTime") or (event.get("end") or {}).get("date")
+                    if start_val and end_val:
+                        busy.append({"start": start_val, "end": end_val})
+                return busy
+            except Exception as list_err:
+                logger.info("events().list pro %s neuspěl (%s), zkouším freebusy/fallback", cal_id, list_err)
+                # Pokud cílový kalendář povoluje jen freebusy dotaz bez detailů událostí:
+                try:
+                    fb = service.freebusy().query(
+                        body={
+                            "timeMin": start_dt.isoformat(),
+                            "timeMax": end_dt.isoformat(),
+                            "timeZone": TIMEZONE,
+                            "items": [{"id": cal_id}],
+                        }
+                    ).execute()
+                    calendars = fb.get("calendars", {})
+                    cal_data = calendars.get(cal_id) or calendars.get(cal_id.lower()) or {}
+                    if not cal_data.get("errors"):
+                        return cal_data.get("busy", [])
+                    logger.warning("Kalendář %s vrátil chybu ve freebusy: %s", cal_id, cal_data.get("errors"))
+                except Exception as fb_err:
+                    logger.warning("Chyba freebusy pro %s: %s", cal_id, fb_err)
+        return []
     except Exception as e:
         logger.warning("Chyba při čtení freebusy: %s", e)
         return []
@@ -234,13 +326,24 @@ def get_location_events(tokens: dict, start_dt: datetime, end_dt: datetime) -> l
     try:
         service = _service(tokens)
         target_cal = calendar_id()
-        events_result = service.events().list(
-            calendarId=target_cal,
-            timeMin=start_dt.isoformat(),
-            timeMax=end_dt.isoformat(),
-            singleEvents=True,
-            orderBy='startTime'
-        ).execute()
+        try:
+            events_result = service.events().list(
+                calendarId=target_cal,
+                timeMin=start_dt.isoformat(),
+                timeMax=end_dt.isoformat(),
+                singleEvents=True,
+                orderBy='startTime'
+            ).execute()
+        except Exception:
+            if target_cal == "primary":
+                raise
+            events_result = service.events().list(
+                calendarId="primary",
+                timeMin=start_dt.isoformat(),
+                timeMax=end_dt.isoformat(),
+                singleEvents=True,
+                orderBy='startTime'
+            ).execute()
         events = events_result.get('items', [])
         locations = []
         for event in events:

@@ -22,11 +22,29 @@ def _frontend_redirect(status: str) -> str:
 
 @router.get("/calendar/status", response_model=CalendarStatus)
 async def calendar_status() -> CalendarStatus:
+    import asyncio
+
     tokens = await gcalendar.get_owner_tokens()
+    connected = bool(tokens and (tokens.get("access_token") or tokens.get("refresh_token")))
+    email = (tokens or {}).get("email")
+    target_calendar = gcalendar.calendar_id()
+    target_accessible = None
+    active_calendar = None
+
+    if connected and tokens:
+        info = await asyncio.to_thread(gcalendar.inspect_calendar_connection, tokens)
+        email = info.get("email") or email
+        target_calendar = info.get("target_calendar") or target_calendar
+        target_accessible = info.get("target_accessible")
+        active_calendar = info.get("active_calendar")
+
     return CalendarStatus(
         configured=gcalendar.is_configured(),
-        connected=bool(tokens and tokens.get("access_token")),
-        email=(tokens or {}).get("email"),
+        connected=connected,
+        email=email,
+        target_calendar=target_calendar,
+        target_accessible=target_accessible,
+        active_calendar=active_calendar,
     )
 
 

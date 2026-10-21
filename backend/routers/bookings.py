@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from bson import Binary
@@ -124,6 +124,10 @@ async def get_availability(date: str) -> Availability:
             # parse ty ruzne zony
             b_start = datetime.fromisoformat(interval['start'].replace('Z', '+00:00'))
             b_end = datetime.fromisoformat(interval['end'].replace('Z', '+00:00'))
+            if b_start.tzinfo is None:
+                b_start = b_start.replace(tzinfo=TZ)
+            if b_end.tzinfo is None:
+                b_end = b_end.replace(tzinfo=TZ)
             # Prunik intervalu
             if max(slot_dt, b_start) < min(slot_end_dt, b_end):
                 cal_taken = True

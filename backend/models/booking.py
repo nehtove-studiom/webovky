@@ -99,3 +99,6 @@ class CalendarStatus(BaseModel):
     configured: bool
     connected: bool
     email: Optional[str] = None
+    target_calendar: Optional[str] = None
+    target_accessible: Optional[bool] = None
+    active_calendar: Optional[str] = None
