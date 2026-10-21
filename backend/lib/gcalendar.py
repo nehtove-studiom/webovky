@@ -243,9 +243,14 @@ def inspect_calendar_connection(tokens: dict) -> dict:
             except Exception as e:
                 logger.warning("Nepodařilo se zjistit primary calendar ID: %s", e)
 
-        # Ověření přístupu k target_cal
+        # Ověření přístupu k target_cal (events.list nebo freebusy)
         try:
-            service.calendars().get(calendarId=target_cal).execute()
+            service.events().list(
+                calendarId=target_cal,
+                timeMin=datetime.now(timezone.utc).isoformat(),
+                maxResults=1,
+                singleEvents=True,
+            ).execute()
             result["target_accessible"] = True
             result["active_calendar"] = target_cal
         except Exception:
