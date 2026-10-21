@@ -37,6 +37,17 @@ async def calendar_status() -> CalendarStatus:
         target_calendar = info.get("target_calendar") or target_calendar
         target_accessible = info.get("target_accessible")
         active_calendar = info.get("active_calendar")
+        return CalendarStatus(
+            configured=gcalendar.is_configured(),
+            connected=connected,
+            email=email,
+            target_calendar=target_calendar,
+            target_accessible=target_accessible,
+            active_calendar=active_calendar,
+            martikiii_role_on_primary=info.get("martikiii_role_on_primary"),
+            acl_users=info.get("acl_users"),
+            calendars=info.get("calendars"),
+        )
 
     return CalendarStatus(
         configured=gcalendar.is_configured(),

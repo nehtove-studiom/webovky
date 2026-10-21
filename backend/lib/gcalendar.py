@@ -239,13 +239,16 @@ def _is_location_marker_event(event: dict) -> bool:
 
 
 def inspect_calendar_connection(tokens: dict) -> dict:
-    """Zjistí e-mail připojeného OAuth účtu a zda má přístup k cílovému kalendáři (martikiii@gmail.com)."""
+    """Zjistí e-mail připojeného OAuth účtu, přístup k martikiii@gmail.com a oprávnění (ACL) na kalendáři."""
     target_cal = calendar_id()
-    result = {
+    result: dict = {
         "email": tokens.get("email"),
         "target_calendar": target_cal,
         "target_accessible": False,
         "active_calendar": None,
+        "martikiii_role_on_primary": None,
+        "acl_users": [],
+        "calendars": [],
     }
     try:
         service = _service(tokens)
@@ -256,7 +259,72 @@ def inspect_calendar_connection(tokens: dict) -> dict:
             except Exception as e:
                 logger.warning("Nepodařilo se zjistit primary calendar ID: %s", e)
 
-        # Ověření přístupu k target_cal (events.list nebo freebusy)
+        # 1) Kontrola a automatické doplnění plného přístupu (owner/writer) pro martikiii@gmail.com ke kalendáři husapotrefen (primary)
+        try:
+            acl_resp = service.acl().list(calendarId="primary").execute()
+            acl_items = acl_resp.get("items", [])
+            martikiii_role = None
+            for item in acl_items:
+                scope_val = (item.get("scope") or {}).get("value", "")
+                role_val = item.get("role", "")
+                if scope_val.lower() == target_cal.lower():
+                    martikiii_role = role_val
+            if martikiii_role not in ("owner", "writer"):
+                for desired_role in ("owner", "writer"):
+                    try:
+                        updated_rule = service.acl().insert(
+                            calendarId="primary",
+                            body={
+                                "role": desired_role,
+                                "scope": {"type": "user", "value": target_cal},
+                            },
+                            sendNotifications=True,
+                        ).execute()
+                        martikiii_role = updated_rule.get("role", desired_role)
+                        break
+                    except Exception as acl_ins_err:
+                        logger.warning("ACL insert (%s) pro %s neuspěl: %s", desired_role, target_cal, acl_ins_err)
+            # Znovu načteme ACL seznam pro přesný přehled
+            acl_resp = service.acl().list(calendarId="primary").execute()
+            result["acl_users"] = [
+                {
+                    "scope": (i.get("scope") or {}).get("value"),
+                    "type": (i.get("scope") or {}).get("type"),
+                    "role": i.get("role"),
+                }
+                for i in acl_resp.get("items", [])
+            ]
+            result["martikiii_role_on_primary"] = martikiii_role
+        except Exception as acl_err:
+            logger.warning("Nepodařilo se načíst/upravit ACL primary kalendáře: %s", acl_err)
+
+        # 2) Přehled kalendářů v calendarList a úklid případných tscheck testovacích událostí
+        try:
+            cl = service.calendarList().list().execute()
+            result["calendars"] = [
+                {
+                    "id": c.get("id"),
+                    "summary": c.get("summary"),
+                    "accessRole": c.get("accessRole"),
+                }
+                for c in cl.get("items", [])
+            ]
+        except Exception as cl_err:
+            logger.warning("Nepodařilo se načíst calendarList: %s", cl_err)
+
+        try:
+            ev_cleanup = service.events().list(
+                calendarId="primary",
+                q="tscheck-",
+                singleEvents=True,
+            ).execute()
+            for ev in ev_cleanup.get("items", []):
+                if "tscheck-" in (ev.get("summary") or ""):
+                    service.events().delete(calendarId="primary", eventId=ev["id"]).execute()
+        except Exception:
+            pass
+
+        # 3) Ověření přístupu k target_cal (events.list nebo freebusy)
         try:
             service.events().list(
                 calendarId=target_cal,
@@ -267,7 +335,6 @@ def inspect_calendar_connection(tokens: dict) -> dict:
             result["target_accessible"] = True
             result["active_calendar"] = target_cal
         except Exception:
-            # Zkusíme ještě freebusy dotaz (pro případ sdílení pouze volno/obsazeno)
             now = datetime.now(timezone.utc)
             fb = service.freebusy().query(
                 body={
@@ -294,9 +361,11 @@ def get_free_busy(tokens: dict, start_dt: datetime, end_dt: datetime) -> list[di
     try:
         service = _service(tokens)
         target_cal = calendar_id()
+        busy: list[dict] = []
 
-        # 1) Zkusíme načíst události přímo z cílového kalendáře (umožní odfiltrovat celodenní označení provozovny)
-        for cal_id in ([target_cal, "primary"] if target_cal != "primary" else ["primary"]):
+        # Čteme obsazené termíny jak z martikiii@gmail.com, tak z primary (husapotrefen@gmail.com),
+        # aby se zohlednily události zapsané v obou kalendářích.
+        for cal_id in dict.fromkeys([target_cal, "primary"]):
             try:
                 events_result = service.events().list(
                     calendarId=cal_id,
@@ -305,7 +374,6 @@ def get_free_busy(tokens: dict, start_dt: datetime, end_dt: datetime) -> list[di
                     singleEvents=True,
                     orderBy="startTime",
                 ).execute()
-                busy: list[dict] = []
                 for event in events_result.get("items", []):
                     if event.get("status") == "cancelled":
                         continue
@@ -313,14 +381,14 @@ def get_free_busy(tokens: dict, start_dt: datetime, end_dt: datetime) -> list[di
                         continue
                     if _is_location_marker_event(event):
                         continue
+                    if "tscheck-" in (event.get("summary") or ""):
+                        continue
                     start_val = (event.get("start") or {}).get("dateTime") or (event.get("start") or {}).get("date")
                     end_val = (event.get("end") or {}).get("dateTime") or (event.get("end") or {}).get("date")
                     if start_val and end_val:
                         busy.append({"start": start_val, "end": end_val})
-                return busy
             except Exception as list_err:
-                logger.info("events().list pro %s neuspěl (%s), zkouším freebusy/fallback", cal_id, list_err)
-                # Pokud cílový kalendář povoluje jen freebusy dotaz bez detailů událostí:
+                logger.info("events().list pro %s neuspěl (%s), zkouším freebusy", cal_id, list_err)
                 try:
                     fb = service.freebusy().query(
                         body={
@@ -333,11 +401,12 @@ def get_free_busy(tokens: dict, start_dt: datetime, end_dt: datetime) -> list[di
                     calendars = fb.get("calendars", {})
                     cal_data = calendars.get(cal_id) or calendars.get(cal_id.lower()) or {}
                     if not cal_data.get("errors"):
-                        return cal_data.get("busy", [])
-                    logger.warning("Kalendář %s vrátil chybu ve freebusy: %s", cal_id, cal_data.get("errors"))
+                        busy.extend(cal_data.get("busy", []))
+                    else:
+                        logger.warning("Kalendář %s vrátil chybu ve freebusy: %s", cal_id, cal_data.get("errors"))
                 except Exception as fb_err:
                     logger.warning("Chyba freebusy pro %s: %s", cal_id, fb_err)
-        return []
+        return busy
     except Exception as e:
         logger.warning("Chyba při čtení freebusy: %s", e)
         return []
@@ -347,25 +416,19 @@ def get_location_events(tokens: dict, start_dt: datetime, end_dt: datetime) -> l
     try:
         service = _service(tokens)
         target_cal = calendar_id()
-        try:
-            events_result = service.events().list(
-                calendarId=target_cal,
-                timeMin=start_dt.isoformat(),
-                timeMax=end_dt.isoformat(),
-                singleEvents=True,
-                orderBy='startTime'
-            ).execute()
-        except Exception:
-            if target_cal == "primary":
-                raise
-            events_result = service.events().list(
-                calendarId="primary",
-                timeMin=start_dt.isoformat(),
-                timeMax=end_dt.isoformat(),
-                singleEvents=True,
-                orderBy='startTime'
-            ).execute()
-        events = events_result.get('items', [])
+        events = []
+        for cal_id in dict.fromkeys([target_cal, "primary"]):
+            try:
+                events_result = service.events().list(
+                    calendarId=cal_id,
+                    timeMin=start_dt.isoformat(),
+                    timeMax=end_dt.isoformat(),
+                    singleEvents=True,
+                    orderBy='startTime'
+                ).execute()
+                events.extend(events_result.get('items', []))
+            except Exception:
+                continue
         locations = []
         for event in events:
             summary = event.get('summary', '').lower()

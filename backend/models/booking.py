@@ -102,3 +102,6 @@ class CalendarStatus(BaseModel):
     target_calendar: Optional[str] = None
     target_accessible: Optional[bool] = None
     active_calendar: Optional[str] = None
+    martikiii_role_on_primary: Optional[str] = None
+    acl_users: Optional[list[dict]] = None
+    calendars: Optional[list[dict]] = None
