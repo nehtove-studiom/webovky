@@ -215,6 +215,19 @@ def append_image_link_sync(tokens: dict, event_id: str, image_url: str) -> None:
     ).execute()
     logger.info("Obrázek designu doplňen do události %s", event_id)
 
+
+def delete_event_sync(tokens: dict, event_id: str) -> None:
+    """Smaže událost rezervace z kalendáře při zrušení rezervace."""
+    service = _service(tokens)
+    target_cal = calendar_id()
+    for cal_id in ([target_cal, "primary"] if target_cal != "primary" else ["primary"]):
+        try:
+            service.events().delete(calendarId=cal_id, eventId=event_id).execute()
+            logger.info("Událost %s smazána z kalendáře %s", event_id, cal_id)
+            return
+        except Exception:
+            continue
+
 def _is_location_marker_event(event: dict) -> bool:
     """Celodenní/vícetýdenní událost typu 'Neratovice' nebo 'Krásná Lípa' určuje provozovnu, ne obsazený slot."""
     summary = (event.get("summary") or "").strip().lower()

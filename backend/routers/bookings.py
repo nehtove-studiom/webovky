@@ -399,6 +399,13 @@ async def update_booking_status(booking_id: str, input: BookingStatusUpdate) -> 
     doc = await db.bookings.find_one({"id": booking_id})
     if not doc:
         raise HTTPException(status_code=404, detail="Rezervace nenalezena.")
+    if input.status == "zrusena" and doc.get("event_id") and await gcalendar.is_connected():
+        try:
+            tokens = await gcalendar.get_owner_tokens()
+            if tokens:
+                await asyncio.to_thread(gcalendar.delete_event_sync, tokens, doc["event_id"])
+        except Exception:
+            logger.warning("Nepodařilo se smazat zrušenou událost %s z kalendáře", doc.get("event_id"))
     await db.bookings.update_one(
         {"id": booking_id},
         {"$set": {"status": input.status, "updated_at": utcnow()}},
