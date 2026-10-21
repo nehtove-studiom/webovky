@@ -28,7 +28,10 @@ DEFAULT_CALENDAR_ID = "martikiii@gmail.com"
 
 def calendar_id() -> str:
     """ID sdíleného firemního kalendáře; výchozí je martikiii@gmail.com."""
-    return (os.environ.get("GOOGLE_CALENDAR_ID") or DEFAULT_CALENDAR_ID).strip()
+    env_cal = (os.environ.get("GOOGLE_CALENDAR_ID") or "").strip()
+    if env_cal and not env_cal.endswith("@group.calendar.google.com"):
+        return env_cal
+    return DEFAULT_CALENDAR_ID
 
 
 def is_configured() -> bool:
